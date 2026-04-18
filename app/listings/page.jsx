@@ -1,5 +1,23 @@
 "use client"
 
+// ─── Smart Home Link ──────────────────────────────────────────────────────────
+function SmartHomeLink() {
+  const [href, setHref] = useState("/")
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) return
+      supabase.from("users").select("role").eq("id", session.user.id).single().then(({ data }) => {
+        const role = data?.role
+        if (role === "agent") setHref("/dashboard/agent")
+        else if (role === "admin") setHref("/dashboard/admin")
+        else if (role === "buyer") setHref("/dashboard/user")
+      })
+    })
+  }, [])
+  return <a href={href} style={{ fontSize:13,color:"rgba(255,255,255,0.4)",textDecoration:"none",fontWeight:600 }}>Home</a>
+}
+
+
 import { useState, useEffect, useRef, useCallback, Suspense } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
@@ -651,7 +669,7 @@ function ListingsPage() {
         <div style={{ position:"absolute",top:0,right:"10%",width:280,height:280,borderRadius:"50%",background:"radial-gradient(circle,"+T+"18 0%,transparent 65%)",pointerEvents:"none" }} />
         <div className="container" style={{ maxWidth:1400,margin:"0 auto",padding:"36px 16px 28px" }}>
           <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:14 }}>
-            <Link href="/" style={{ fontSize:13,color:"rgba(255,255,255,0.4)",textDecoration:"none",fontWeight:600 }}>Home</Link>
+            <SmartHomeLink />
             <ChevronRight size={13} color="rgba(255,255,255,0.25)" />
             <span style={{ fontSize:13,color:T,fontWeight:700 }}>Listings</span>
           </div>

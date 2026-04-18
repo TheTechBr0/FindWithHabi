@@ -16,6 +16,28 @@ const T_DARK = "#005f70"
 const T_GLOW = "#0097B244"
 const DARK   = "#080f14"
 
+// ─── Smart Back Button ────────────────────────────────────────────────────────
+function BackButton({ userRole, authReady }) {
+  const router = useRouter()
+
+  const handleBack = () => {
+    if (window.history.length > 1) { router.back(); return }
+    if (authReady && userRole) {
+      if (userRole === "agent") { router.push("/dashboard/agent"); return }
+      if (userRole === "admin") { router.push("/dashboard/admin"); return }
+      router.push("/dashboard/user"); return
+    }
+    router.push("/listings")
+  }
+
+  return (
+    <button onClick={handleBack}
+      style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 50, border: "1.5px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.85)", fontSize: 12, fontWeight: 700, background: "none", cursor: "pointer", whiteSpace: "nowrap" }}>
+      <ArrowLeft size={13} /> Back
+    </button>
+  )
+}
+
 // ─── NavBar ───────────────────────────────────────────────────────────────────
 function NavBar() {
   const [scrolled,  setScrolled]  = useState(false)
@@ -26,7 +48,9 @@ function NavBar() {
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 20)
     window.addEventListener("scroll", fn, { passive: true })
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    // getSession is instant (reads from storage) — fixes mobile delay
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const user = session?.user || null
       setAuthUser(user)
       if (user) {
         supabase.from("users").select("role").eq("id", user.id).single()
@@ -48,9 +72,7 @@ function NavBar() {
           <img src="/findwithhabilogo.png" alt="FindWithHabi" style={{ height: 52, width: "auto", objectFit: "contain" }} />
         </Link>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Link href="/listings" style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 50, border: "1.5px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.85)", fontSize: 12, fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap" }}>
-            <ArrowLeft size={13} /> Browse
-          </Link>
+          <BackButton userRole={userRole} authReady={authReady} />
           {authReady && (
             authUser
               ? <Link href={dashboardLink} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 50, background: "rgba(255,255,255,0.1)", border: "1.5px solid rgba(255,255,255,0.2)", color: "#fff", fontSize: 12, fontWeight: 800, textDecoration: "none", whiteSpace: "nowrap" }}>
@@ -136,7 +158,9 @@ function EnquiryForm({ listing, agent }) {
   const [checked,  setChecked]  = useState(false)
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    // getSession is instant — fixes "Login to Contact" flash on mobile
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const user = session?.user || null
       setAuthUser(user)
       if (user) {
         supabase.from("users").select("full_name, email, phone").eq("id", user.id).single()
@@ -659,7 +683,7 @@ function MobileContactBar({ agent, listing, saved, onSave, authUser }) {
         </a>
         <button onClick={() => setShowForm(true)}
           style={{ flex: 1, height: 44, borderRadius: 11, background: T, border: "none", color: "#fff", fontSize: 14, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, boxShadow: "0 4px 14px " + T_GLOW }}>
-          <Send size={15} /> Contact Agent
+          <Send size={15} /> {authUser ? "Contact Agent" : "Login to Contact"}
         </button>
       </div>
 
@@ -715,7 +739,8 @@ export default function ListingDetailPage() {
   const isOwner = !!(authUser && agent && agent.user_id === authUser.id)
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const user = session?.user || null
       setAuthUser(user)
       if (user) {
         supabase.from("users").select("full_name, email, phone").eq("id", user.id).single()
