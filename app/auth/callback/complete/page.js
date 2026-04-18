@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { Suspense } from "react"
 
@@ -9,30 +9,28 @@ const T    = "#0097B2"
 const DARK = "#080f14"
 
 function Complete() {
-  const router  = useRouter()
-  const params  = useSearchParams()
+  const router         = useRouter()
   const [status, setStatus] = useState("Signing you in…")
 
   useEffect(() => {
-    const code = params.get("code")
-    if (!code) { router.push("/auth?error=no_code"); return }
-
     const run = async () => {
       try {
-        // Exchange code for session on the client
-        const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+        // Wait a moment for Supabase to process the hash fragment automatically
+        await new Promise(r => setTimeout(r, 1500))
 
-        if (error || !data.session) {
-          setStatus("Sign in failed: " + (error?.message || "unknown"))
-          setTimeout(() => router.push("/auth?error=oauth_failed"), 2000)
+        // Supabase JS automatically detects the hash fragment and sets the session
+        const { data: { session }, error } = await supabase.auth.getSession()
+
+        if (error || !session) {
+          setStatus("No session found. Redirecting to login…")
+          setTimeout(() => router.push("/auth"), 2000)
           return
         }
 
-        const session = data.session
-        const userId  = session.user.id
-        const email   = session.user.email
-        const name    = session.user.user_metadata?.full_name || session.user.user_metadata?.name || email?.split("@")[0] || "User"
-        const avatar  = session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null
+        const userId = session.user.id
+        const email  = session.user.email
+        const name   = session.user.user_metadata?.full_name || session.user.user_metadata?.name || email?.split("@")[0] || "User"
+        const avatar = session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null
 
         setStatus("Setting up your account…")
 

@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server"
 
+const SITE_URL = "https://find-with-habi.vercel.app"
+
 export async function GET(request) {
-  const { origin, searchParams } = new URL(request.url)
-  const code  = searchParams.get("code")
+  const { searchParams } = new URL(request.url)
   const error = searchParams.get("error")
 
-  if (error) return NextResponse.redirect(origin + "/auth?error=" + error)
-  if (!code) return NextResponse.redirect(origin + "/auth?error=no_code")
+  if (error) return NextResponse.redirect(SITE_URL + "/auth?error=" + error)
 
-  return NextResponse.redirect(origin + "/auth/callback/complete?code=" + code)
+  // Redirect to complete page — Supabase will have set session via hash fragment
+  return NextResponse.redirect(SITE_URL + "/auth/callback/complete")
 }
