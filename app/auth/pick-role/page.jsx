@@ -12,28 +12,48 @@ function PickRole() {
   const params     = useSearchParams()
   const [picking, setPicking] = useState(false)
 
-  const uid    = params.get("uid")
-  const name   = params.get("name")   || "User"
-  const email  = params.get("email")  || ""
-  const avatar = params.get("avatar") || null
+  const uid          = params.get("uid")
+  const name         = params.get("name")          || "User"
+  const email        = params.get("email")         || ""
+  const avatar       = params.get("avatar")        || null
+  const accessToken  = params.get("access_token")  || null
+  const refreshToken = params.get("refresh_token") || null
 
-  // If no uid in URL, not a valid Google flow — send back to auth
+  // Restore session from tokens passed in URL
   useEffect(() => {
-    if (!uid) router.push("/auth")
+    if (!uid) { router.push("/auth"); return }
+    if (accessToken && refreshToken) {
+      supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+    }
   }, [uid])
 
   const pickRole = async (role) => {
     if (!uid || picking) return
     setPicking(true)
 
+    // Verify session exists on client side
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      router.push("/auth")
+      return
+    }
+
     // Insert user with chosen role
-    await supabase.from("users").insert({
+    const { error } = await supabase.from("users").insert({
       id:         uid,
       email,
       full_name:  name,
       avatar_url: avatar || null,
       role,
     })
+
+    if (error) {
+      // Already exists — just redirect
+      const { data: existing } = await supabase.from("users").select("role").eq("id", uid).single()
+      if (existing?.role === "agent") { router.push("/dashboard/agent"); return }
+      router.push("/dashboard/user")
+      return
+    }
 
     // If agent, create agents row
     if (role === "agent") {
@@ -43,10 +63,10 @@ function PickRole() {
         rating:        0,
         total_reviews: 0,
       })
+      router.push("/dashboard/agent")
+      return
     }
 
-    // Redirect to correct dashboard
-    if (role === "agent") { router.push("/dashboard/agent"); return }
     router.push("/dashboard/user")
   }
 

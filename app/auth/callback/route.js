@@ -33,12 +33,15 @@ export async function GET(request) {
   }
 
   // New user — send to role picker
+  // Pass the access token so the client can restore the session
   const params = new URLSearchParams({
-    new:    "1",
-    name:   name,
-    email:  email,
-    avatar: avatar || "",
-    uid:    userId,
+    new:          "1",
+    name:         name,
+    email:        email,
+    avatar:       avatar || "",
+    uid:          userId,
+    access_token: session.access_token,
+    refresh_token: session.refresh_token,
   })
   return NextResponse.redirect(SITE_URL + "/auth/pick-role?" + params.toString())
 }
