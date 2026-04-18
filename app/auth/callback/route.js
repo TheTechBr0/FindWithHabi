@@ -28,12 +28,13 @@ export async function GET(request) {
     .from("users").select("id, role").eq("id", userId).single()
 
   if (existingUser) {
+    // Returning user — redirect by role
     if (existingUser.role === "admin") return NextResponse.redirect(SITE_URL + "/dashboard/admin")
     if (existingUser.role === "agent") return NextResponse.redirect(SITE_URL + "/dashboard/agent")
     return NextResponse.redirect(SITE_URL + "/dashboard/user")
   }
 
-  // New user — create with buyer role first
+  // New user — always create as buyer
   await supabase.from("users").insert({
     id:         userId,
     email,
@@ -42,7 +43,5 @@ export async function GET(request) {
     role:       "buyer",
   })
 
-  // Use hash fragment instead of query params — tokens are not URL-encoded this way
-  const redirectUrl = SITE_URL + "/auth/pick-role#access_token=" + session.access_token + "&refresh_token=" + session.refresh_token
-  return NextResponse.redirect(redirectUrl)
+  return NextResponse.redirect(SITE_URL + "/dashboard/user")
 }
