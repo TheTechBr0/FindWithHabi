@@ -78,12 +78,12 @@ export const metadata = {
   },
   icons: {
     icon: [
-      { url: "/findwithhabilogo.png", sizes: "32x32",   type: "image/png" },
-      { url: "/findwithhabilogo.png", sizes: "192x192", type: "image/png" },
-      { url: "/findwithhabilogo.png", sizes: "512x512", type: "image/png" },
+      { url: "/icon.PNG", sizes: "32x32",   type: "image/png" },
+      { url: "/icon.PNG", sizes: "192x192", type: "image/png" },
+      { url: "/icon.PNG", sizes: "512x512", type: "image/png" },
     ],
-    shortcut: "/findwithhabilogo.png",
-    apple:    "/findwithhabilogo.png",
+    shortcut: "/icon.PNG",
+    apple:    "/icon.PNG",
   },
   manifest: "/site.webmanifest",
 }
