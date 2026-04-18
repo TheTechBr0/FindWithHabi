@@ -1,64 +1,59 @@
 "use client"
 
 import { useState, useEffect, Suspense } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
 const T    = "#0097B2"
 const DARK = "#080f14"
 
 function PickRole() {
-  const router     = useRouter()
-  const params     = useSearchParams()
-  const [picking, setPicking] = useState(false)
+  const router          = useRouter()
+  const [picking,  setPicking]  = useState(false)
+  const [loading,  setLoading]  = useState(true)
+  const [user,     setUser]     = useState(null)
 
-  const uid          = params.get("uid")
-  const name         = params.get("name")          || "User"
-  const email        = params.get("email")         || ""
-  const avatar       = params.get("avatar")        || null
-  const accessToken  = params.get("access_token")  || null
-  const refreshToken = params.get("refresh_token") || null
-
-  // Restore session from tokens passed in URL
   useEffect(() => {
-    if (!uid) { router.push("/auth"); return }
-    if (accessToken && refreshToken) {
-      supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+    // Session is already set by Supabase after OAuth — just get it
+    const getUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!session) {
+        // No session — go back to login
+        router.push("/auth")
+        return
+      }
+
+      // Get user info from our users table
+      const { data: userData } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", session.user.id)
+        .single()
+
+      setUser({
+        id:     session.user.id,
+        name:   userData?.full_name || session.user.user_metadata?.full_name || "User",
+        email:  session.user.email,
+        avatar: userData?.avatar_url || session.user.user_metadata?.avatar_url || null,
+      })
+      setLoading(false)
     }
-  }, [uid])
+
+    getUser()
+  }, [])
 
   const pickRole = async (role) => {
-    if (!uid || picking) return
+    if (!user || picking) return
     setPicking(true)
 
-    // Verify session exists on client side
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) {
-      router.push("/auth")
-      return
-    }
-
-    // Insert user with chosen role
-    const { error } = await supabase.from("users").insert({
-      id:         uid,
-      email,
-      full_name:  name,
-      avatar_url: avatar || null,
-      role,
-    })
-
-    if (error) {
-      // Already exists — just redirect
-      const { data: existing } = await supabase.from("users").select("role").eq("id", uid).single()
-      if (existing?.role === "agent") { router.push("/dashboard/agent"); return }
-      router.push("/dashboard/user")
-      return
-    }
+    // Update role in users table
+    await supabase.from("users").update({ role }).eq("id", user.id)
 
     // If agent, create agents row
     if (role === "agent") {
       await supabase.from("agents").insert({
-        user_id:       uid,
+        user_id:       user.id,
         is_verified:   false,
         rating:        0,
         total_reviews: 0,
@@ -68,6 +63,17 @@ function PickRole() {
     }
 
     router.push("/dashboard/user")
+  }
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: "100svh", display: "flex", alignItems: "center", justifyContent: "center", background: DARK }}>
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke={T} strokeWidth="2" style={{ animation: "spin 1s linear infinite" }}>
+          <circle cx="12" cy="12" r="10" strokeOpacity="0.25" /><path d="M12 2a10 10 0 0 1 10 10" />
+        </svg>
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      </div>
+    )
   }
 
   return (
@@ -83,19 +89,16 @@ function PickRole() {
         </div>
 
         {/* Card */}
-        <div style={{
-          background: "rgba(255,255,255,0.04)",
-          border: "1px solid rgba(255,255,255,0.08)",
-          borderRadius: 24, padding: "32px 28px",
-        }}>
+        <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 24, padding: "32px 28px" }}>
+
           {/* User info */}
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24, padding: "14px 16px", borderRadius: 14, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
-            {avatar
-              ? <img src={avatar} alt={name} style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", border: "2px solid " + T }} />
-              : <div style={{ width: 44, height: 44, borderRadius: "50%", background: T + "30", border: "2px solid " + T, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 900, color: T }}>{name.charAt(0)}</div>}
+            {user?.avatar
+              ? <img src={user.avatar} alt={user.name} style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", border: "2px solid " + T }} />
+              : <div style={{ width: 44, height: 44, borderRadius: "50%", background: T + "30", border: "2px solid " + T, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 900, color: T }}>{user?.name?.charAt(0) || "U"}</div>}
             <div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>{name}</div>
-              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>{email}</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>{user?.name}</div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>{user?.email}</div>
             </div>
           </div>
 
@@ -103,7 +106,7 @@ function PickRole() {
             How will you use FindWithHabi?
           </h2>
           <p style={{ margin: "0 0 24px", fontSize: 13, color: "rgba(255,255,255,0.4)", lineHeight: 1.6 }}>
-            Choose your account type — this determines what you can do on the platform.
+            Choose your account type to get started.
           </p>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -135,17 +138,12 @@ function PickRole() {
           {picking && (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginTop: 20, color: "rgba(255,255,255,0.4)", fontSize: 13 }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: "spin 1s linear infinite" }}>
-                <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
-                <path d="M12 2a10 10 0 0 1 10 10" />
+                <circle cx="12" cy="12" r="10" strokeOpacity="0.25" /><path d="M12 2a10 10 0 0 1 10 10" />
               </svg>
               Setting up your account…
             </div>
           )}
         </div>
-
-        <p style={{ textAlign: "center", marginTop: 20, fontSize: 12, color: "rgba(255,255,255,0.2)" }}>
-          You can only have one account type per Google account
-        </p>
       </div>
 
       <style>{`

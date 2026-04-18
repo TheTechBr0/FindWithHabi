@@ -27,21 +27,21 @@ export async function GET(request) {
     .from("users").select("id, role").eq("id", userId).single()
 
   if (existingUser) {
+    // Returning user — redirect by role
     if (existingUser.role === "admin") return NextResponse.redirect(SITE_URL + "/dashboard/admin")
     if (existingUser.role === "agent") return NextResponse.redirect(SITE_URL + "/dashboard/agent")
     return NextResponse.redirect(SITE_URL + "/dashboard/user")
   }
 
-  // New user — send to role picker
-  // Pass the access token so the client can restore the session
-  const params = new URLSearchParams({
-    new:          "1",
-    name:         name,
-    email:        email,
-    avatar:       avatar || "",
-    uid:          userId,
-    access_token: session.access_token,
-    refresh_token: session.refresh_token,
+  // New user — create as buyer by default, then let them change role from settings
+  await supabase.from("users").insert({
+    id:         userId,
+    email,
+    full_name:  name,
+    avatar_url: avatar || null,
+    role:       "buyer",
   })
-  return NextResponse.redirect(SITE_URL + "/auth/pick-role?" + params.toString())
+
+  // Redirect to a special page that asks role AFTER session is established
+  return NextResponse.redirect(SITE_URL + "/auth/pick-role")
 }
