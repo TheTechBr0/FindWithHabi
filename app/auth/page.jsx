@@ -519,7 +519,8 @@ function GoogleBtn() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: "https://find-with-habi.vercel.app/auth/callback",
+        redirectTo: "https://find-with-habi.vercel.app/auth/callback/complete",
+        skipBrowserRedirect: false,
       },
     })
     if (error) { alert("Google sign-in failed: " + error.message); setLoading(false) }
