@@ -1,5 +1,6 @@
-import { createClient } from "@supabase/supabase-js"
+import { createServerClient } from "@supabase/ssr"
 import { NextResponse } from "next/server"
+import { cookies } from "next/headers"
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://find-with-habi.vercel.app"
 
@@ -9,9 +10,19 @@ export async function GET(request) {
 
   if (!code) return NextResponse.redirect(SITE_URL + "/auth?error=no_code")
 
-  const supabase = createClient(
+  const cookieStore = cookies()
+  const response = NextResponse.redirect(SITE_URL + "/auth/pick-role")
+
+  const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      cookies: {
+        get(name) { return cookieStore.get(name)?.value },
+        set(name, value, options) { response.cookies.set({ name, value, ...options }) },
+        remove(name, options) { response.cookies.set({ name, value: "", ...options }) },
+      },
+    }
   )
 
   const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code)
@@ -27,13 +38,13 @@ export async function GET(request) {
     .from("users").select("id, role").eq("id", userId).single()
 
   if (existingUser) {
-    // Returning user — redirect by role
-    if (existingUser.role === "admin") return NextResponse.redirect(SITE_URL + "/dashboard/admin")
-    if (existingUser.role === "agent") return NextResponse.redirect(SITE_URL + "/dashboard/agent")
-    return NextResponse.redirect(SITE_URL + "/dashboard/user")
+    if (existingUser.role === "admin") { response.headers.set("Location", SITE_URL + "/dashboard/admin"); return response }
+    if (existingUser.role === "agent") { response.headers.set("Location", SITE_URL + "/dashboard/agent"); return response }
+    response.headers.set("Location", SITE_URL + "/dashboard/user")
+    return response
   }
 
-  // New user — create as buyer by default, then let them change role from settings
+  // New user — create with buyer role, let pick-role update it
   await supabase.from("users").insert({
     id:         userId,
     email,
@@ -42,6 +53,6 @@ export async function GET(request) {
     role:       "buyer",
   })
 
-  // Redirect to a special page that asks role AFTER session is established
-  return NextResponse.redirect(SITE_URL + "/auth/pick-role")
+  // response already redirects to /auth/pick-role with session cookie set
+  return response
 }
