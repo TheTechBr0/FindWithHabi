@@ -78,12 +78,12 @@ export const metadata = {
   },
   icons: {
     icon: [
-      { url: "/icon.PNG", sizes: "32x32",   type: "image/png" },
-      { url: "/icon.PNG", sizes: "192x192", type: "image/png" },
-      { url: "/icon.PNG", sizes: "512x512", type: "image/png" },
+      { url: "/icon.png", sizes: "32x32",   type: "image/png" },
+      { url: "/icon.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon.png", sizes: "512x512", type: "image/png" },
     ],
-    shortcut: "/icon.PNG",
-    apple:    "/icon.PNG",
+    shortcut: "/icon.png",
+    apple:    "/icon.png",
   },
   manifest: "/site.webmanifest",
 }
@@ -98,6 +98,11 @@ export default function RootLayout({ children }) {
         {/* Paystack */}
         <script src="https://js.paystack.co/v1/inline.js" async />
 
+        {/* Favicon fallback for older browsers */}
+        <link rel="icon" href="/icon.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/icon.png" />
+        <link rel="shortcut icon" href="/icon.png" type="image/png" />
+
         {/* JSON-LD — Organisation */}
         <script
           type="application/ld+json"
@@ -107,17 +112,17 @@ export default function RootLayout({ children }) {
               "@type":    "Organization",
               name:       "FindWithHabi",
               url:        BASE_URL,
-              logo:       BASE_URL + "/findwithhabilogo.png",
+              logo:       BASE_URL + "/icon.png",
               description: "Nigeria's trusted property platform connecting buyers, renters and agents.",
               address: {
-                "@type":          "PostalAddress",
-                addressCountry:   "NG",
-                addressLocality:  "Lagos",
+                "@type":         "PostalAddress",
+                addressCountry:  "NG",
+                addressLocality: "Lagos",
               },
               contactPoint: {
-                "@type":       "ContactPoint",
-                email:         "hello@findwithhabi.com",
-                contactType:   "customer support",
+                "@type":     "ContactPoint",
+                email:       "hello@findwithhabi.com",
+                contactType: "customer support",
               },
             }),
           }}
@@ -135,8 +140,8 @@ export default function RootLayout({ children }) {
               potentialAction: {
                 "@type": "SearchAction",
                 target: {
-                  "@type":      "EntryPoint",
-                  urlTemplate:  BASE_URL + "/listings?search={search_term_string}",
+                  "@type":     "EntryPoint",
+                  urlTemplate: BASE_URL + "/listings?search={search_term_string}",
                 },
                 "query-input": "required name=search_term_string",
               },
