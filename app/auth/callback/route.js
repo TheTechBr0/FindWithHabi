@@ -1,11 +1,13 @@
 import { createClient } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://findwithhabi.vercel.app"
+
 export async function GET(request) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams } = new URL(request.url)
   const code = searchParams.get("code")
 
-  if (!code) return NextResponse.redirect(origin + "/auth?error=no_code")
+  if (!code) return NextResponse.redirect(SITE_URL + "/auth?error=no_code")
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -13,7 +15,7 @@ export async function GET(request) {
   )
 
   const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code)
-  if (error || !session) return NextResponse.redirect(origin + "/auth?error=oauth_failed")
+  if (error || !session) return NextResponse.redirect(SITE_URL + "/auth?error=oauth_failed")
 
   const userId = session.user.id
   const email  = session.user.email
@@ -25,13 +27,12 @@ export async function GET(request) {
     .from("users").select("id, role").eq("id", userId).single()
 
   if (existingUser) {
-    // Returning user — redirect by role
-    if (existingUser.role === "admin") return NextResponse.redirect(origin + "/dashboard/admin")
-    if (existingUser.role === "agent") return NextResponse.redirect(origin + "/dashboard/agent")
-    return NextResponse.redirect(origin + "/dashboard/user")
+    if (existingUser.role === "admin") return NextResponse.redirect(SITE_URL + "/dashboard/admin")
+    if (existingUser.role === "agent") return NextResponse.redirect(SITE_URL + "/dashboard/agent")
+    return NextResponse.redirect(SITE_URL + "/dashboard/user")
   }
 
-  // New user — redirect to role picker with their info in query params
+  // New user — send to role picker
   const params = new URLSearchParams({
     new:    "1",
     name:   name,
@@ -39,5 +40,5 @@ export async function GET(request) {
     avatar: avatar || "",
     uid:    userId,
   })
-  return NextResponse.redirect(origin + "/auth/pick-role?" + params.toString())
+  return NextResponse.redirect(SITE_URL + "/auth/pick-role?" + params.toString())
 }
