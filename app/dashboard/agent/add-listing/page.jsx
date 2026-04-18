@@ -535,7 +535,7 @@ export default function AddListingPage() {
           negotiable:   form.negotiable,
           service_fee:  form.serviceFee ? parseFloat(form.serviceFee) : null,
           caution_fee:  form.cautionFee ? parseFloat(form.cautionFee) : null,
-          status:       "pending",
+          status:       "active",
           is_verified:  false,
           is_featured:  false,
           is_popular:   false,

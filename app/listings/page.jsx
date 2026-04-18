@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, Suspense } from "react"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import {
   Search, MapPin, Heart, ArrowRight, X, ChevronDown,
-  Grid3x3, List, Bed, Bath, Maximize2, CheckCircle, Star,
-  ChevronLeft, ChevronRight, Sparkles, Flame, GraduationCap,
+  Grid3x3, List, Map, Bed, Bath, Maximize2, CheckCircle, Star, Loader,
+  ChevronLeft, ChevronRight, Sparkles, Flame, BookOpen,
 } from "lucide-react"
 
 const T      = "#0097B2"
@@ -26,6 +27,64 @@ const PRICE_RANGES = [
   { label:"₦50M – ₦150M",min:50000000,  max:150000000 },
   { label:"₦150M+",       min:150000000, max:Infinity  },
 ]
+
+// ─── Nigerian city coordinates ────────────────────────────────────────────────
+const CITY_COORDS = {
+  // Lagos
+  "lagos":           [6.5244, 3.3792],
+  "victoria island": [6.4281, 3.4219],
+  "ikoyi":           [6.4550, 3.4324],
+  "lekki":           [6.4698, 3.5852],
+  "ajah":            [6.4667, 3.6167],
+  "surulere":        [6.5000, 3.3500],
+  "yaba":            [6.5150, 3.3800],
+  "ikeja":           [6.6018, 3.3515],
+  "isale eko":       [6.4500, 3.3833],
+  // Abuja
+  "abuja":           [9.0765, 7.3986],
+  "wuse":            [9.0667, 7.4833],
+  "maitama":         [9.0833, 7.5000],
+  "garki":           [9.0500, 7.4833],
+  "asokoro":         [9.0333, 7.5167],
+  "gwarinpa":        [9.1167, 7.4000],
+  // Rivers
+  "port harcourt":   [4.8156, 7.0498],
+  "obio":            [4.7500, 7.0333],
+  // Enugu
+  "enugu":           [6.4584, 7.5464],
+  // Anambra
+  "awka":            [6.2059, 7.0739],
+  "onitsha":         [6.1667, 6.7833],
+  // Delta
+  "asaba":           [6.1983, 6.7333],
+  "warri":           [5.5167, 5.7500],
+  // Kano
+  "kano":            [12.0022, 8.5920],
+  // Kaduna
+  "kaduna":          [10.5272, 7.4396],
+  // Ibadan
+  "ibadan":          [7.3776, 3.9470],
+  // Benin City
+  "benin city":      [6.3350, 5.6270],
+  // Calabar
+  "calabar":         [4.9517, 8.3220],
+  // Uyo
+  "uyo":             [5.0377, 7.9128],
+  // Owerri
+  "owerri":          [5.4836, 7.0333],
+  // Default Nigeria center
+  "default":         [9.0820, 8.6753],
+}
+
+function getCityCoords(city, state) {
+  if (!city) return CITY_COORDS["default"]
+  const key = city.toLowerCase().trim()
+  if (CITY_COORDS[key]) return CITY_COORDS[key]
+  // Try state capital fallback
+  const stateKey = (state || "").toLowerCase().trim()
+  if (CITY_COORDS[stateKey]) return CITY_COORDS[stateKey]
+  return CITY_COORDS["default"]
+}
 
 const TAG_COLORS = {
   "Luxury":     { color:"#b45309", bg:"#f59e0b22" },
@@ -323,14 +382,126 @@ function PropertyRow({ listing, saved, onSave, index }) {
   )
 }
 
+
+// ─── Map View ─────────────────────────────────────────────────────────────────
+function MapView({ listings, saved, onSave }) {
+  const [selected, setSelected] = useState(null)
+  const [mounted,  setMounted]  = useState(false)
+  const mapRef = useRef(null)
+
+  useEffect(() => { setMounted(true) }, [])
+
+  if (!mounted) return (
+    <div style={{ height: "calc(100vh - 200px)", minHeight: 500, background: "#f1f5f9", borderRadius: 20, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ textAlign: "center" }}>
+        <Loader size={32} color={T} style={{ animation: "spin 1s linear infinite", marginBottom: 12 }} />
+        <p style={{ color: "#94a3b8", fontSize: 14, margin: 0 }}>Loading map…</p>
+      </div>
+    </div>
+  )
+
+  // Dynamically import Leaflet only on client
+  const L = typeof window !== "undefined" ? require("leaflet") : null
+  if (!L) return null
+
+  // Fix default marker icons (Leaflet webpack issue)
+  delete L.Icon.Default.prototype._getIconUrl
+  L.Icon.Default.mergeOptions({
+    iconUrl:       "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+    iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+    shadowUrl:     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  })
+
+  const { MapContainer, TileLayer, Marker, Popup } = require("react-leaflet")
+
+  // Group listings by coords to avoid exact overlaps
+  const withCoords = listings.map(l => ({
+    ...l,
+    _coords: getCityCoords(l.city, l.state),
+  }))
+
+  // Nigeria center
+  const center = [9.0820, 8.6753]
+
+  return (
+    <div style={{ position: "relative", height: "calc(100vh - 220px)", minHeight: 520, borderRadius: 20, overflow: "hidden", border: "1px solid #e2e8f0", boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
+      <MapContainer
+        center={center}
+        zoom={6}
+        style={{ width: "100%", height: "100%" }}
+        zoomControl={true}
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        {withCoords.map(l => (
+          <Marker
+            key={l.id}
+            position={l._coords}
+            eventHandlers={{ click: () => setSelected(l.id === selected ? null : l.id) }}
+          >
+            <Popup maxWidth={260} closeButton={false}>
+              <div style={{ fontFamily: "'DM Sans',system-ui,sans-serif", padding: "4px 0" }}>
+                {/* Cover image */}
+                {l.cover_image && (
+                  <div style={{ height: 130, margin: "-8px -8px 10px", overflow: "hidden", borderRadius: "8px 8px 0 0" }}>
+                    <img src={l.cover_image} alt={l.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  </div>
+                )}
+                {/* Badge */}
+                <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 50, background: T, color: "#fff", fontSize: 10, fontWeight: 700, marginBottom: 6 }}>
+                  {l.listing_type}
+                </span>
+                {/* Title */}
+                <div style={{ fontSize: 13, fontWeight: 800, color: "#0d1f2d", marginBottom: 4, lineHeight: 1.3 }}>{l.title}</div>
+                {/* Location */}
+                <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
+                  <span style={{ fontSize: 11, color: "#64748b" }}>📍 {l.city}, {l.state}</span>
+                </div>
+                {/* Beds */}
+                {l.beds > 0 && (
+                  <div style={{ fontSize: 11, color: "#64748b", marginBottom: 8 }}>
+                    🛏 {l.beds} bed · 🚿 {l.baths} bath
+                  </div>
+                )}
+                {/* Price + link */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 16, fontWeight: 900, color: T }}>{l.price_label}</span>
+                  <a href={"/listings/" + l.id}
+                    style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", borderRadius: 8, background: T, color: "#fff", fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
+                    View
+                  </a>
+                </div>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
+      </MapContainer>
+
+      {/* Results count overlay */}
+      <div style={{ position: "absolute", top: 12, left: 12, zIndex: 1000, background: "rgba(255,255,255,0.95)", backdropFilter: "blur(8px)", padding: "8px 14px", borderRadius: 50, fontSize: 13, fontWeight: 700, color: "#0d1f2d", boxShadow: "0 2px 12px rgba(0,0,0,0.15)" }}>
+        📍 {listings.length} {listings.length === 1 ? "property" : "properties"}
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
-export default function ListingsPage() {
+function ListingsPage() {
+  const searchParams   = useSearchParams()
   const [listings,    setListings]    = useState([])
   const [loading,     setLoading]     = useState(true)
   const [error,       setError]       = useState(null)
-  const [search,      setSearch]      = useState("")
+  const [search,      setSearch]      = useState(searchParams.get("search") || "")
   const [activeType,  setActiveType]  = useState("All")
-  const [activeState, setActiveState] = useState("All States")
+  const [activeState, setActiveState] = useState(() => {
+    const raw = searchParams.get("state") || searchParams.get("city") || ""
+    if (!raw) return "All States"
+    // Match against known states (case-insensitive)
+    const match = STATES.find(s => s.toLowerCase() === raw.toLowerCase())
+    return match || "All States"
+  })
   const [priceRange,  setPriceRange]  = useState(PRICE_RANGES[0])
   const [beds,        setBeds]        = useState("Any")
   const [sort,        setSort]        = useState("Newest")
@@ -429,7 +600,14 @@ export default function ListingsPage() {
       : activeType === "Student"
         ? l.category === "Student Housing"
         : l.listing_type === activeType && l.category !== "Student Housing"
-    const matchState  = activeState === "All States" || l.state === activeState
+    const matchState  = activeState === "All States" ||
+      l.state === activeState ||
+      // Handle Abuja/FCT alias
+      (activeState === "Abuja" && (l.state === "FCT" || l.state === "Federal Capital Territory")) ||
+      (activeState === "FCT (Abuja)" && l.state === "Abuja") ||
+      // Case-insensitive fallback
+      l.state?.toLowerCase() === activeState?.toLowerCase() ||
+      l.city?.toLowerCase() === activeState?.toLowerCase()
     const matchPrice  = l.price >= priceRange.min && l.price <= priceRange.max
     const matchBeds   = beds === "Any" || l.beds >= parseInt(beds)
     const matchSearch = !search.trim() ||
@@ -478,7 +656,7 @@ export default function ListingsPage() {
             <span style={{ fontSize:13,color:T,fontWeight:700 }}>Listings</span>
           </div>
           <h1 style={{ margin:"0 0 6px",fontSize:"clamp(24px,5vw,44px)",fontWeight:900,color:"#fff",letterSpacing:"-0.03em",fontFamily:"'DM Sans',system-ui,sans-serif" }}>
-            Browse Properties
+            {activeState !== "All States" ? `Properties in ${activeState}` : "Browse Properties"}
           </h1>
           <p style={{ margin:"0 0 24px",fontSize:15,color:"rgba(255,255,255,0.45)" }}>
             {loading ? "Loading properties…" : sorted.length + " verified properties across Nigeria"}
@@ -563,7 +741,7 @@ export default function ListingsPage() {
               <section style={{ marginBottom:44 }}>
                 <div style={{ background:"linear-gradient(135deg,#064e3b 0%,#065f46 100%)",borderRadius:20,padding:"22px 20px 0",position:"relative",overflow:"hidden" }}>
                   <div style={{ position:"absolute",top:-24,right:-24,width:120,height:120,borderRadius:"50%",background:"rgba(255,255,255,0.05)",pointerEvents:"none" }} />
-                  <SectionLabel icon={GraduationCap} color="#6ee7b7" label="Near universities" title="Student Housing" onCta={() => setActiveType("Student")} />
+                  <SectionLabel icon={BookOpen} color="#6ee7b7" label="Near universities" title="Student Housing" onCta={() => setActiveType("Student")} />
                   <div style={{ display:"flex",gap:14,overflowX:"auto",paddingBottom:22,scrollbarWidth:"none",WebkitOverflowScrolling:"touch" }}>
                     {studentItems.map((l,i) => (
                       <div key={l.id} style={{ flexShrink:0,width:"clamp(220px,58vw,265px)" }}>
@@ -592,9 +770,10 @@ export default function ListingsPage() {
             <div style={{ display:"flex",alignItems:"center",gap:10 }}>
               <Dropdown label="Sort" value={sort} options={SORTS} onChange={setSort} />
               <div style={{ display:"flex",background:"#fff",border:"1.5px solid #e2e8f0",borderRadius:12,overflow:"hidden" }}>
-                {[["grid",Grid3x3],["list",List]].map(([v,Icon]) => (
+                {[["grid",Grid3x3],["list",List],["map",Map]].map(([v,Icon]) => (
                   <button key={v} onClick={() => setView(v)}
-                    style={{ width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",border:"none",cursor:"pointer",background:view===v?T:"#fff",transition:"all 0.2s" }}>
+                    style={{ width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",border:"none",cursor:"pointer",background:view===v?T:"#fff",transition:"all 0.2s" }}
+                    title={v.charAt(0).toUpperCase() + v.slice(1) + " view"}>
                     <Icon size={16} color={view===v?"#fff":"#94a3b8"} />
                   </button>
                 ))}
@@ -612,7 +791,11 @@ export default function ListingsPage() {
           </div>
         )}
 
-        {!loading && !error && paginated.length > 0 && (
+        {!loading && !error && view === "map" && (
+          <MapView listings={sorted} saved={saved} onSave={toggleSave} />
+        )}
+
+        {!loading && !error && view !== "map" && paginated.length > 0 && (
           <div style={view==="grid" ? { display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,295px),1fr))",gap:18 } : { display:"flex",flexDirection:"column",gap:14 }}>
             {paginated.map((l,i) =>
               view === "grid"
@@ -652,6 +835,21 @@ export default function ListingsPage() {
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,600;9..40,700;9..40,800;9..40,900&display=swap');
+        @import url('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
+        /* Prevent Leaflet from overlapping fixed navbar */
+        .leaflet-pane { z-index: 10 !important; }
+        .leaflet-top, .leaflet-bottom { z-index: 20 !important; }
+        .leaflet-control { z-index: 20 !important; }
+        /* Popup styling */
+        .leaflet-popup-content-wrapper {
+          border-radius: 16px !important;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.15) !important;
+          padding: 0 !important;
+          overflow: hidden !important;
+          font-family: 'DM Sans', system-ui, sans-serif !important;
+        }
+        .leaflet-popup-content { margin: 8px !important; width: 240px !important; }
+        .leaflet-popup-tip-container { display: none !important; }
         *, *::before, *::after { box-sizing: border-box; }
         html, body { margin:0; max-width:100vw; overflow-x:hidden; -webkit-font-smoothing:antialiased; }
         ::-webkit-scrollbar { display:none; }
@@ -661,6 +859,7 @@ export default function ListingsPage() {
         :focus-visible { outline:2px solid ${T}; outline-offset:3px; border-radius:4px; }
         @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
         @keyframes dropIn { from{opacity:0;transform:translateY(-6px) scale(0.98)} to{opacity:1;transform:none} }
+        @keyframes spin { to{transform:rotate(360deg)} }
         @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
         @media (min-width:768px) {
           .nav-inner { padding:0 24px !important; }
@@ -677,5 +876,13 @@ export default function ListingsPage() {
         }
       `}</style>
     </div>
+  )
+}
+
+export default function ListingsPageWrapper() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: "100svh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f8fafc", fontFamily: "'DM Sans',system-ui,sans-serif" }}><div style={{ fontSize: 14, color: "#94a3b8" }}>Loading…</div></div>}>
+      <ListingsPage />
+    </Suspense>
   )
 }

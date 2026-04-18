@@ -5,7 +5,7 @@ import Link from "next/link"
 import { supabase } from "@/lib/supabase"
 import {
   Eye, EyeOff, Home, Building2, ShieldCheck,
-  ArrowLeft, ArrowRight, CheckCircle, Mail, Lock, User, Phone,
+  ArrowLeft, ArrowRight, CheckCircle, Mail, Lock, User, Phone, MapPin,
 } from "lucide-react"
 
 // ─── Design tokens (matches landing page) ─────────────────────────────────────
@@ -13,6 +13,15 @@ const T      = "#0097B2"
 const T_DARK = "#005f70"
 const T_GLOW = "#0097B244"
 const DARK   = "#080f14"
+
+// ─── Nigerian States ─────────────────────────────────────────────────────────
+const NG_STATES = [
+  "Abia","Adamawa","Akwa Ibom","Anambra","Bauchi","Bayelsa","Benue","Borno",
+  "Cross River","Delta","Ebonyi","Edo","Ekiti","Enugu","FCT (Abuja)","Gombe",
+  "Imo","Jigawa","Kaduna","Kano","Katsina","Kebbi","Kogi","Kwara","Lagos",
+  "Nasarawa","Niger","Ogun","Ondo","Osun","Oyo","Plateau","Rivers","Sokoto",
+  "Taraba","Yobe","Zamfara",
+]
 
 // ─── Roles ────────────────────────────────────────────────────────────────────
 const ROLES = [
@@ -303,6 +312,8 @@ function SignupForm({ onSwitch }) {
   const [role, setRole]           = useState("buyer")
   const [name, setName]           = useState("")
   const [phone, setPhone]         = useState("")
+  const [city,  setCity]          = useState("")
+  const [state, setState]         = useState("")
   const [email, setEmail]         = useState("")
   const [password, setPassword]   = useState("")
   const [confirm, setConfirm]     = useState("")
@@ -353,6 +364,8 @@ function SignupForm({ onSwitch }) {
         email,
         full_name: name,
         phone,
+        city:      city  || null,
+        state:     state || null,
         role,
       })
       // If agent, create agent row
@@ -427,6 +440,32 @@ function SignupForm({ onSwitch }) {
         placeholder="+234 800 000 0000"
       />
 
+      {/* City + State — shown for all, required for agents */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field
+          label={role === "agent" ? "City *" : "City (optional)"}
+          icon={MapPin}
+          value={city}
+          onChange={e => setCity(e.target.value)}
+          placeholder="e.g. Lagos"
+        />
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <label style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.6)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+            {role === "agent" ? "State *" : "State (optional)"}
+          </label>
+          <div style={{ position: "relative", display: "flex", alignItems: "center", background: "rgba(255,255,255,0.05)", border: "1.5px solid rgba(255,255,255,0.1)", borderRadius: 14, transition: "border-color 0.2s" }}
+            onFocusCapture={e => e.currentTarget.style.borderColor = T}
+            onBlurCapture={e => e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"}>
+            <select value={state} onChange={e => setState(e.target.value)}
+              style={{ flex: 1, padding: "13px 14px", background: "transparent", border: "none", outline: "none", fontSize: 16, color: state ? "#fff" : "rgba(255,255,255,0.25)", fontFamily: "inherit", cursor: "pointer", appearance: "none", WebkitAppearance: "none" }}>
+              <option value="" style={{ background: "#0d1f2d", color: "#fff" }}>Select state</option>
+              {NG_STATES.map(s => <option key={s} value={s} style={{ background: "#0d1f2d", color: "#fff" }}>{s}</option>)}
+            </select>
+            <div style={{ paddingRight: 12, pointerEvents: "none", color: "rgba(255,255,255,0.4)", fontSize: 10 }}>▼</div>
+          </div>
+        </div>
+      </div>
+
       <PasswordField label="Password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 8 characters" error={errors.password} />
       <PasswordField label="Confirm password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Repeat password" error={errors.confirm} />
 
@@ -473,29 +512,48 @@ function SignupForm({ onSwitch }) {
 
 // ─── Google button ────────────────────────────────────────────────────────────
 function GoogleBtn() {
+  const [loading, setLoading] = useState(false)
+
+  const handleGoogle = async () => {
+    setLoading(true)
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin + "/auth/callback",
+        queryParams: { access_type: "offline", prompt: "consent" },
+      },
+    })
+    if (error) { alert("Google sign-in failed: " + error.message); setLoading(false) }
+    // On success, Supabase redirects the browser — no further action needed
+  }
+
   return (
     <button
       type="button"
+      onClick={handleGoogle}
+      disabled={loading}
       style={{
         width: "100%", padding: "13px", borderRadius: 14,
         background: "rgba(255,255,255,0.05)",
         border: "1.5px solid rgba(255,255,255,0.1)",
         color: "#fff", fontSize: 14, fontWeight: 700,
-        cursor: "pointer", display: "flex", alignItems: "center",
+        cursor: loading ? "not-allowed" : "pointer",
+        display: "flex", alignItems: "center",
         justifyContent: "center", gap: 10, transition: "all 0.2s",
-        minHeight: 48,
+        minHeight: 48, opacity: loading ? 0.7 : 1,
       }}
-      onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.09)" }}
+      onMouseEnter={e => { if (!loading) e.currentTarget.style.background = "rgba(255,255,255,0.09)" }}
       onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)" }}
     >
-      {/* Google G SVG */}
-      <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
-        <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.6 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.4-.4-3.5z" />
-        <path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 16.1 19 13 24 13c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
-        <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.3 35.5 26.8 36 24 36c-5.1 0-9.5-3.3-11.2-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z" />
-        <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.3 5.6l6.2 5.2C36.9 36.2 44 31 44 24c0-1.2-.1-2.4-.4-3.5z" />
-      </svg>
-      Continue with Google
+      {loading
+        ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{ animation: "spin 1s linear infinite" }}><circle cx="12" cy="12" r="10" strokeOpacity="0.25" /><path d="M12 2a10 10 0 0 1 10 10" /></svg>
+        : <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+            <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.6 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.4-.4-3.5z" />
+            <path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 16.1 19 13 24 13c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
+            <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.3 35.5 26.8 36 24 36c-5.1 0-9.5-3.3-11.2-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z" />
+            <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.3 5.6l6.2 5.2C36.9 36.2 44 31 44 24c0-1.2-.1-2.4-.4-3.5z" />
+          </svg>}
+      {loading ? "Connecting…" : "Continue with Google"}
     </button>
   )
 }

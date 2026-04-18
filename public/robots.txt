@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Allow: /listings
+Allow: /agents
+Allow: /privacy
+Allow: /terms
+
+Disallow: /dashboard/
+Disallow: /auth/reset
+Disallow: /api/
+
+Sitemap: https://findwithhabi.com/sitemap.xml

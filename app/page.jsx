@@ -111,7 +111,7 @@ function NavBar({ scrollY }) {
               <>
                 <div onClick={() => setMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 10 }} />
                 <div style={{ position: "absolute", top: "calc(100% + 10px)", right: 0, zIndex: 20, width: 220, background: "rgba(8,15,20,0.97)", backdropFilter: "blur(24px)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, overflow: "hidden", boxShadow: "0 16px 48px rgba(0,0,0,0.5)", animation: "dropIn 0.18s ease" }}>
-                  {[["Listings","/listings"],["Agents","#agents"],["Cities","#cities"],["Blog","#"], mobileAuthItem].map(([label,href],i,arr) => (
+                  {[["Listings","/listings"],["Agents","/agents"],["Cities","#cities"],["Blog","#"], mobileAuthItem].map(([label,href],i,arr) => (
                     <Link key={label} href={href} onClick={() => setMenuOpen(false)}
                       style={{ display: "flex", alignItems: "center", padding: "0 20px", minHeight: 48, color: i === arr.length-1 ? T : "rgba(255,255,255,0.85)", fontSize: 14, fontWeight: i === arr.length-1 ? 800 : 600, textDecoration: "none", borderBottom: i === arr.length-1 ? "none" : "1px solid rgba(255,255,255,0.06)" }}>
                       {label}
@@ -361,7 +361,7 @@ function CitiesSection() {
         </div>
         <div className="cities-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 12 }}>
           {CITIES.map((city, i) => (
-            <Link key={i} href={`/listings?city=${city.name.toLowerCase()}`} className={i === 0 || i === 3 ? "city-wide" : ""}
+            <Link key={i} href={`/listings?state=${encodeURIComponent(city.name)}`} className={i === 0 || i === 3 ? "city-wide" : ""}
               style={{ borderRadius: 18, overflow: "hidden", position: "relative", textDecoration: "none", display: "block", opacity: inView ? 1 : 0, transform: inView ? "none" : "translateY(32px)", transition: `opacity 0.6s ease ${i * 70}ms, transform 0.6s ease ${i * 70}ms` }}>
               <img src={city.img} alt={city.name} loading="lazy" className={i === 0 || i === 3 ? "city-wide-img" : "city-img"} style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }} />
               <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 55%)" }} />
@@ -442,39 +442,53 @@ function AgentsSection({ agents }) {
             <p style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>No agents yet — be the first to join!</p>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%,260px),1fr))", gap: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,260px),1fr))", gap: 16 }}>
             {displayAgents.slice(0, 3).map((agent, i) => (
-              <div key={agent.id} style={{ background: "#fff", borderRadius: 22, padding: "28px 24px", textAlign: "center", border: "1px solid #f1f5f9", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", opacity: inView ? 1 : 0, transform: inView ? "none" : "translateY(32px)", transition: `opacity 0.6s ease ${i * 100}ms, transform 0.6s ease ${i * 100}ms` }}>
-                <div style={{ position: "relative", width: 72, height: 72, margin: "0 auto 14px" }}>
+              <div key={agent.id} style={{ background: "#fff", borderRadius: 22, padding: "24px 20px", textAlign: "center", border: "1px solid " + (agent.is_verified ? T + "20" : "#f1f5f9"), boxShadow: agent.is_verified ? "0 4px 20px rgba(0,151,178,0.08)" : "0 2px 8px rgba(0,0,0,0.04)", opacity: inView ? 1 : 0, transform: inView ? "none" : "translateY(32px)", transition: `opacity 0.6s ease ${i * 100}ms, transform 0.6s ease ${i * 100}ms`, display: "flex", flexDirection: "column" }}>
+                {agent.is_verified && <div style={{ height: 3, background: "linear-gradient(90deg," + T + ",#8b5cf6)", borderRadius: "3px 3px 0 0", margin: "-24px -20px 16px" }} />}
+                <div style={{ position: "relative", width: 72, height: 72, margin: "0 auto 12px", flexShrink: 0 }}>
                   {agent.users?.avatar_url
-                    ? <img src={agent.users.avatar_url} alt={agent.users.full_name} loading="lazy" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover", border: `3px solid ${T}` }} />
-                    : <div style={{ width: 72, height: 72, borderRadius: "50%", background: T + "20", border: `3px solid ${T}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, fontWeight: 900, color: T }}>{agent.users?.full_name?.charAt(0) || "A"}</div>}
+                    ? <img src={agent.users.avatar_url} alt={agent.users.full_name} loading="lazy" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover", border: "3px solid " + T }} />
+                    : <div style={{ width: 72, height: 72, borderRadius: "50%", background: T + "20", border: "3px solid " + T, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, fontWeight: 900, color: T }}>{agent.users?.full_name?.charAt(0) || "A"}</div>}
                   <div style={{ position: "absolute", bottom: 2, right: 2, width: 13, height: 13, borderRadius: "50%", background: "#22c55e", border: "2px solid #fff" }} />
                 </div>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 4 }}>
-                  <h3 style={{ margin: 0, fontSize: 17, fontWeight: 900, color: "#0d1f2d" }}>{agent.users?.full_name || "Agent"}</h3>
-                  {agent.is_verified && <BadgeCheck size={16} color="#10b981" />}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 3 }}>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900, color: "#0d1f2d", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 160 }}>{agent.users?.full_name || "Agent"}</h3>
+                  {agent.is_verified && <BadgeCheck size={15} color="#10b981" />}
                 </div>
-                <p style={{ margin: "0 0 18px", fontSize: 13, color: "#64748b" }}>{agent.users?.city || "Nigeria"} · Property Agent</p>
-                <div style={{ display: "flex", justifyContent: "center", gap: 24, marginBottom: 20 }}>
+                <p style={{ margin: "0 0 14px", fontSize: 12, color: "#64748b" }}>
+                  {[agent.users?.city, agent.users?.state].filter(Boolean).join(", ") || "Nigeria"} · Agent
+                </p>
+                <div style={{ display: "flex", justifyContent: "center", gap: 20, marginBottom: 16, padding: "10px 0", borderTop: "1px solid #f8fafc", borderBottom: "1px solid #f8fafc" }}>
                   <div>
-                    <div style={{ fontSize: 20, fontWeight: 900, color: "#0d1f2d" }}>{agent.listing_count || 0}</div>
-                    <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>Listings</div>
+                    <div style={{ fontSize: 18, fontWeight: 900, color: "#0d1f2d" }}>{agent.listing_count || 0}</div>
+                    <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 1 }}>Listings</div>
                   </div>
                   <div style={{ width: 1, background: "#f1f5f9" }} />
                   <div>
-                    <div style={{ fontSize: 20, fontWeight: 900, color: "#0d1f2d", display: "flex", alignItems: "center", gap: 4 }}>
-                      <Star size={15} color="#f59e0b" fill="#f59e0b" /> {agent.rating > 0 ? agent.rating : "New"}
+                    <div style={{ fontSize: 18, fontWeight: 900, color: "#0d1f2d", display: "flex", alignItems: "center", gap: 3 }}>
+                      <Star size={13} color="#f59e0b" fill="#f59e0b" /> {agent.rating > 0 ? agent.rating : "—"}
                     </div>
-                    <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>Rating</div>
+                    <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 1 }}>Rating</div>
+                  </div>
+                  <div style={{ width: 1, background: "#f1f5f9" }} />
+                  <div>
+                    <div style={{ fontSize: 18, fontWeight: 900, color: "#0d1f2d" }}>{agent.total_reviews || 0}</div>
+                    <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 1 }}>Reviews</div>
                   </div>
                 </div>
-                {agent.users?.phone && (
-                  <a href={"tel:" + agent.users.phone}
-                    style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px 0", borderRadius: 12, background: T, color: "#fff", fontSize: 14, fontWeight: 800, textDecoration: "none", boxShadow: `0 4px 16px ${T_GLOW}`, minHeight: 48 }}>
-                    <Phone size={14} /> Contact Agent
-                  </a>
-                )}
+                <div style={{ display: "flex", gap: 8, marginTop: "auto" }}>
+                  <Link href={"/agents/" + agent.id}
+                    style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px", borderRadius: 11, background: T, color: "#fff", fontSize: 13, fontWeight: 800, textDecoration: "none", boxShadow: "0 4px 14px " + T_GLOW }}>
+                    View Profile
+                  </Link>
+                  {agent.users?.phone && (
+                    <a href={"tel:" + agent.users.phone}
+                      style={{ width: 42, height: 42, borderRadius: 11, background: "#f8fafc", border: "1.5px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", flexShrink: 0 }}>
+                      <Phone size={16} color="#64748b" />
+                    </a>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -647,11 +661,54 @@ function Footer() {
             ))}
           </div>
         </div>
+        {/* Mobile app coming soon */}
+        <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "20px 24px", marginBottom: 24 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              {/* Phone icon SVG */}
+              <div style={{ width: 48, height: 48, borderRadius: 14, background: T + "18", border: "1px solid " + T + "30", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={T} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                  <line x1="12" y1="18" x2="12.01" y2="18"/>
+                </svg>
+              </div>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 900, color: "#fff", marginBottom: 3 }}>FindWithHabi Mobile App</div>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", marginBottom: 10 }}>Search listings, chat with agents & save properties on the go.</div>
+                {/* App store badges */}
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  {/* App Store */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 14px", borderRadius: 10, background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", opacity: 0.6 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+                      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                    </svg>
+                    <div>
+                      <div style={{ fontSize: 8, color: "rgba(255,255,255,0.6)", lineHeight: 1 }}>Download on the</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: "#fff", lineHeight: 1.3 }}>App Store</div>
+                    </div>
+                  </div>
+                  {/* Google Play */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 14px", borderRadius: 10, background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", opacity: 0.6 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+                      <path d="M3 20.5v-17c0-.83.94-1.3 1.6-.8l14 8.5c.6.37.6 1.23 0 1.6l-14 8.5c-.66.5-1.6.03-1.6-.8z" fill="#fff"/>
+                      <path d="M3 3.5l10.5 10.5L3 24.5" fill="none"/>
+                    </svg>
+                    <div>
+                      <div style={{ fontSize: 8, color: "rgba(255,255,255,0.6)", lineHeight: 1 }}>Get it on</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: "#fff", lineHeight: 1.3 }}>Google Play</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span style={{ padding: "6px 16px", borderRadius: 50, background: T + "20", border: "1px solid " + T + "50", color: T, fontSize: 12, fontWeight: 800, whiteSpace: "nowrap", flexShrink: 0, alignSelf: "flex-start" }}>🚀 Coming Soon</span>
+          </div>
+        </div>
         <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 24, display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
           <p style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", margin: 0 }}>© 2026 FindWithHabi. All rights reserved.</p>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-            {["Privacy Policy","Terms of Service","Cookie Policy"].map(label => (
-              <a key={label} href="#" style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>{label}</a>
+            {[["Privacy Policy","/privacy"],["Terms of Service","/terms"],["Cookie Policy","#"]].map(([label, href]) => (
+              <a key={label} href={href} style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>{label}</a>
             ))}
           </div>
         </div>
@@ -702,12 +759,13 @@ export default function LandingPage() {
         setListings(formatted)
       }
 
-      // Top agents (verified first, most listings)
+      // Top agents (verified first, then by rating)
       const { data: agentsData } = await supabase
         .from("agents")
-        .select("*, users(full_name, avatar_url, phone, city)")
+        .select("*, users(full_name, avatar_url, phone, city, state)")
         .order("is_verified", { ascending: false })
-        .limit(3)
+        .order("rating",      { ascending: false })
+        .limit(6)
 
       if (agentsData) {
         // Attach listing counts
@@ -736,19 +794,29 @@ export default function LandingPage() {
 
       setStats({ totalListings: totalListings || 0, totalUsers: totalUsers || 0, totalAgents: totalAgents || 0 })
 
-      // Popular listings — most viewed, not flagged
+      // Popular listings — combined views + rating score
       const { data: popularData } = await supabase
         .from("listings")
-        .select("*")
+        .select("*, agents(rating)")
         .eq("status", "active")
         .eq("is_flagged", false)
         .order("views", { ascending: false })
-        .limit(10)
+        .limit(30)
 
       if (popularData && popularData.length > 0) {
-        const pIds = popularData.map(l => l.id)
+        // Score = views * 0.6 + (rating * 20) * 0.4  — blends popularity with quality
+        const scored = popularData
+          .map(l => {
+            const agentRating = l.agents?.rating || 0
+            const score = (l.views || 0) * 0.6 + (agentRating * 20) * 0.4
+            return { ...l, _score: score }
+          })
+          .sort((a, b) => b._score - a._score)
+          .slice(0, 10)
+
+        const pIds = scored.map(l => l.id)
         const { data: pImages } = await supabase.from("listing_images").select("listing_id, url, is_cover").in("listing_id", pIds)
-        setPopularListings(popularData.map(l => {
+        setPopularListings(scored.map(l => {
           const imgs  = pImages ? pImages.filter(i => i.listing_id === l.id) : []
           const cover = imgs.find(i => i.is_cover)?.url || imgs[0]?.url || null
           return { ...l, cover_image: cover }

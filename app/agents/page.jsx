@@ -185,7 +185,7 @@ function ContactModal({ agent, onClose, authUser, userData }) {
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 9000, display: "flex", alignItems: "flex-end", justifyContent: "center" }} className="modal-outer">
       <div onClick={onClose} style={{ position: "absolute", inset: 0, background: "rgba(8,15,20,0.7)", backdropFilter: "blur(6px)" }} />
-      <div style={{ position: "relative", width: "100%", maxWidth: 520, background: "#fff", borderRadius: "24px 24px 0 0", padding: "28px 24px 32px", boxShadow: "0 -24px 64px rgba(0,0,0,0.2)", animation: "slideUp 0.3s ease", maxHeight: "90svh", overflowY: "auto" }} className="modal-desktop">
+      <div style={{ position: "relative", width: "100%", maxWidth: 520, background: "#fff", borderRadius: "24px 24px 0 0", padding: "28px 24px 32px", boxShadow: "0 -24px 64px rgba(0,0,0,0.2)", animation: "slideUp 0.3s ease", maxHeight: "88svh", overflowY: "auto" }} className="modal-desktop">
         <div style={{ width: 40, height: 4, borderRadius: 50, background: "#e2e8f0", margin: "0 auto 20px" }} />
         {sent ? (
           <div style={{ textAlign: "center", padding: "20px 0 10px" }}>
@@ -207,7 +207,7 @@ function ContactModal({ agent, onClose, authUser, userData }) {
                   <span style={{ fontSize: 16, fontWeight: 800, color: "#0d1f2d" }}>{agentName}</span>
                   {agent.is_verified && <BadgeCheck size={15} color="#10b981" />}
                 </div>
-                <div style={{ fontSize: 12, color: "#94a3b8" }}>{agent.users?.city || "Nigeria"}</div>
+                <div style={{ fontSize: 12, color: "#94a3b8" }}>{[agent.users?.city, agent.users?.state].filter(Boolean).join(", ") || "Nigeria"}</div>
               </div>
               <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: "50%", background: "#f8fafc", border: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
                 <X size={15} color="#64748b" />
@@ -267,8 +267,12 @@ function ContactModal({ agent, onClose, authUser, userData }) {
 function AgentCard({ agent, index, onContact }) {
   const agentName   = agent.users?.full_name  || "Agent"
   const agentCity   = agent.users?.city       || ""
+  const agentState  = agent.users?.state      || ""
   const agentPhone  = agent.users?.phone      || ""
   const agentAvatar = agent.users?.avatar_url
+  // Show city + state, or just state, or "Nigeria"
+  const agentLocation = agentCity && agentState ? agentCity + ", " + agentState
+                      : agentCity  || agentState || "Nigeria"
 
   return (
     <article style={{ background: "#fff", borderRadius: 24, overflow: "hidden", border: "1px solid " + (agent.is_verified ? T + "20" : "#f1f5f9"), boxShadow: agent.is_verified ? "0 4px 24px rgba(0,151,178,0.08)" : "0 2px 12px rgba(0,0,0,0.05)", display: "flex", flexDirection: "column", animation: "fadeUp 0.5s ease " + (index * 60) + "ms both", transition: "transform 0.2s, box-shadow 0.2s" }}
@@ -276,7 +280,7 @@ function AgentCard({ agent, index, onContact }) {
       onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = agent.is_verified ? "0 4px 24px rgba(0,151,178,0.08)" : "0 2px 12px rgba(0,0,0,0.05)" }}>
       {agent.is_verified && <div style={{ height: 3, background: "linear-gradient(90deg," + T + ",#8b5cf6)" }} />}
 
-      <div style={{ padding: "22px 22px 18px" }}>
+      <div style={{ padding: "18px 18px 16px" }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 16 }}>
           <div style={{ position: "relative", flexShrink: 0 }}>
             {agentAvatar
@@ -286,10 +290,10 @@ function AgentCard({ agent, index, onContact }) {
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4, flexWrap: "wrap" }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900, color: "#0d1f2d", letterSpacing: "-0.02em" }}>{agentName}</h3>
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 900, color: "#0d1f2d", letterSpacing: "-0.02em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "160px" }}>{agentName}</h3>
               {agent.is_verified && <BadgeCheck size={16} color="#10b981" />}
             </div>
-            <p style={{ margin: "0 0 7px", fontSize: 12, color: "#64748b" }}>{agentCity || "Nigeria"} · Property Agent</p>
+            <p style={{ margin: "0 0 7px", fontSize: 12, color: "#64748b" }}>{agentLocation} · Property Agent</p>
             {agent.is_verified
               ? <div style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 50, background: "#10b98115", border: "1px solid #10b98130" }}>
                   <BadgeCheck size={11} color="#10b981" />
@@ -308,10 +312,10 @@ function AgentCard({ agent, index, onContact }) {
             <span style={{ fontSize: 13, fontWeight: 800, color: "#0d1f2d", marginLeft: 3 }}>{agent.rating > 0 ? agent.rating : "New"}</span>
             <span style={{ fontSize: 12, color: "#94a3b8" }}>({agent.total_reviews || 0})</span>
           </div>
-          {agentCity && (
+          {agentLocation && agentLocation !== "Nigeria" && (
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               <MapPin size={12} color={T} />
-              <span style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>{agentCity}</span>
+              <span style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>{agentLocation}</span>
             </div>
           )}
         </div>
@@ -466,7 +470,8 @@ export default function AgentsPage() {
             <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, background: "#fff", borderRadius: 14, padding: "0 16px", boxShadow: "0 4px 24px rgba(0,0,0,0.2)", minHeight: 52 }}>
               <Search size={17} color="#94a3b8" style={{ flexShrink: 0 }} />
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, city or state…"
-                style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontSize: 16, color: "#0d1f2d", fontFamily: "inherit", padding: "14px 0" }} />
+                type="search" autoComplete="off"
+                style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontSize: 16, color: "#0d1f2d", fontFamily: "inherit", padding: "14px 0", minWidth: 0 }} />
               {search && <button onClick={() => setSearch("")} style={{ background: "none", border: "none", cursor: "pointer", display: "flex" }}><X size={15} color="#94a3b8" /></button>}
             </div>
           </div>
@@ -533,7 +538,7 @@ export default function AgentsPage() {
                     Verified Agents ({verifiedAgents.length})
                   </span>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,300px),1fr))", gap: 20 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,280px),1fr))", gap: 16 }}>
                   {verifiedAgents.map((agent, i) => <AgentCard key={agent.id} agent={agent} index={i} onContact={openContact} />)}
                 </div>
               </div>
@@ -551,7 +556,7 @@ export default function AgentsPage() {
                     </span>
                   </div>
                 )}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,300px),1fr))", gap: 20 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,280px),1fr))", gap: 16 }}>
                   {otherAgents.map((agent, i) => <AgentCard key={agent.id} agent={agent} index={i} onContact={openContact} />)}
                 </div>
               </div>

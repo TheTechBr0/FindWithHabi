@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import {
   Users, Building2, MessageCircle, BadgeCheck, LogOut,
-  Bell, X, Menu, Activity, CheckCircle, Trash2,
+  Bell, X, Menu, Activity, CheckCircle, Trash2, Headphones,
   Eye, Search, ChevronRight, Loader, Shield,
   Clock, RefreshCw, MapPin, Phone, Send,
   ArrowLeft, AlertCircle, Flag, Sparkles,
@@ -29,6 +29,7 @@ const NAV = [
   { key: "enquiries",     label: "Enquiries",       icon: MessageCircle},
   { key: "reports",       label: "Reports",         icon: ClipboardList},
   { key: "notifications", label: "Notifications",   icon: Bell         },
+  { key: "support",       label: "Support Tickets", icon: Headphones   },
 ]
 
 const NOTIF_TYPES = [
@@ -107,8 +108,86 @@ function Sidebar({ active, onNav, open, onClose, adminUser, badges }) {
   )
 }
 
+
+// ─── Admin Notification Bell ──────────────────────────────────────────────────
+function AdminNotificationBell({ adminUserId }) {
+  const [open,   setOpen]   = useState(false)
+  const [notifs, setNotifs] = useState([])
+  const unread = notifs.filter(n => !n.is_read).length
+  const ICONS = { general:"🔔", warning:"⚠️", feature:"🚀", announcement:"📢", policy:"📋", personal:"💬" }
+
+  const load = () => {
+    if (!adminUserId) return
+    supabase.from("notifications").select("*").eq("user_id", adminUserId)
+      .order("created_at", { ascending: false }).limit(30)
+      .then(({ data }) => setNotifs(data || []))
+  }
+  useEffect(() => { load() }, [adminUserId])
+  useEffect(() => {
+    if (!adminUserId) return
+    const interval = setInterval(load, 10000)
+    return () => clearInterval(interval)
+  }, [adminUserId])
+
+  const markRead = async (id) => {
+    await supabase.from("notifications").update({ is_read: true }).eq("id", id)
+    setNotifs(p => p.map(n => n.id === id ? { ...n, is_read: true } : n))
+  }
+  const markAllRead = async () => {
+    const ids = notifs.filter(n => !n.is_read).map(n => n.id)
+    if (!ids.length) return
+    await supabase.from("notifications").update({ is_read: true }).in("id", ids)
+    setNotifs(p => p.map(n => ({ ...n, is_read: true })))
+  }
+
+  return (
+    <div style={{ position: "relative" }}>
+      <button onClick={() => { setOpen(p => !p); load() }}
+        style={{ position: "relative", width: 40, height: 40, borderRadius: 10, background: "#f8fafc", border: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+        <Bell size={17} color="#64748b" />
+        {unread > 0 && <span style={{ position: "absolute", top: 6, right: 6, width: 8, height: 8, borderRadius: "50%", background: "#ef4444", border: "2px solid #fff" }} />}
+      </button>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 10 }} />
+          <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, zIndex: 9999, width: 360, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 18, boxShadow: "0 16px 48px rgba(0,0,0,0.15)", overflow: "hidden" }}>
+            <div style={{ padding: "14px 16px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 14, fontWeight: 800, color: "#0d1f2d" }}>
+                Notifications
+                {unread > 0 && <span style={{ background: "#ef4444", color: "#fff", fontSize: 10, fontWeight: 800, padding: "2px 6px", borderRadius: 50, marginLeft: 6 }}>{unread}</span>}
+              </span>
+              {unread > 0 && <button onClick={markAllRead} style={{ fontSize: 11, color: T, fontWeight: 700, background: "none", border: "none", cursor: "pointer" }}>Mark all read</button>}
+            </div>
+            <div style={{ maxHeight: 420, overflowY: "auto" }}>
+              {notifs.length === 0 ? (
+                <div style={{ padding: "32px", textAlign: "center", color: "#94a3b8" }}>
+                  <Bell size={28} color="#e2e8f0" style={{ marginBottom: 8 }} />
+                  <p style={{ margin: 0, fontSize: 13 }}>No notifications yet</p>
+                </div>
+              ) : notifs.map(n => (
+                <div key={n.id} onClick={() => markRead(n.id)}
+                  style={{ padding: "12px 16px", borderBottom: "1px solid #f8fafc", background: n.is_read ? "#fff" : T + "06", cursor: "pointer" }}>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <span style={{ fontSize: 18, flexShrink: 0 }}>{ICONS[n.type] || "🔔"}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#0d1f2d", marginBottom: 2 }}>{n.title}</div>
+                      <div style={{ fontSize: 12, color: "#64748b", lineHeight: 1.5, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{n.body || n.message || ""}</div>
+                      <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>{new Date(n.created_at).toLocaleDateString()}</div>
+                    </div>
+                    {!n.is_read && <div style={{ width: 7, height: 7, borderRadius: "50%", background: T, flexShrink: 0, marginTop: 4 }} />}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 // ─── Topbar ───────────────────────────────────────────────────────────────────
-function Topbar({ title, onMenuOpen, onRefresh }) {
+function Topbar({ title, onMenuOpen, onRefresh, adminUserId }) {
   return (
     <header style={{ height: 64, background: "#fff", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", position: "sticky", top: 0, zIndex: 100, boxShadow: "0 1px 12px rgba(0,0,0,0.04)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -118,6 +197,7 @@ function Topbar({ title, onMenuOpen, onRefresh }) {
         <h1 style={{ margin: 0, fontSize: "clamp(16px,2.5vw,20px)", fontWeight: 900, color: "#0d1f2d", letterSpacing: "-0.02em", fontFamily: "'DM Sans',system-ui,sans-serif" }}>{title}</h1>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <AdminNotificationBell adminUserId={adminUserId} />
         <button onClick={onRefresh} style={{ width: 40, height: 40, borderRadius: 10, background: "#f8fafc", border: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }} title="Refresh">
           <RefreshCw size={16} color="#64748b" />
         </button>
@@ -143,15 +223,17 @@ function LoadingCard() {
 
 function StatCard({ label, value, icon: Icon, color, sub, delay, onClick }) {
   return (
-    <div onClick={onClick} style={{ background: "#fff", borderRadius: 20, padding: "22px 24px", border: "1px solid #f1f5f9", boxShadow: "0 2px 12px rgba(0,0,0,0.04)", animation: "fadeUp 0.5s ease " + (delay || 0) + "ms both", cursor: onClick ? "pointer" : "default", transition: "box-shadow 0.2s" }}
-      onMouseEnter={e => { if (onClick) e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.1)" }}
-      onMouseLeave={e => { if (onClick) e.currentTarget.style.boxShadow = "0 2px 12px rgba(0,0,0,0.04)" }}>
-      <div style={{ width: 44, height: 44, borderRadius: 14, background: color + "18", border: "1px solid " + color + "30", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
-        <Icon size={20} color={color} />
+    <div onClick={onClick} style={{ background: "#fff", borderRadius: 16, padding: "16px", border: "1px solid #f1f5f9", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", animation: "fadeUp 0.5s ease " + (delay || 0) + "ms both", cursor: onClick ? "pointer" : "default", transition: "all 0.2s" }}
+      onMouseEnter={e => { if (onClick) { e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.1)"; e.currentTarget.style.transform = "translateY(-2px)" } }}
+      onMouseLeave={e => { if (onClick) { e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.04)"; e.currentTarget.style.transform = "none" } }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <div style={{ width: 36, height: 36, borderRadius: 10, background: color + "18", border: "1px solid " + color + "25", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Icon size={17} color={color} />
+        </div>
+        {sub && <div style={{ fontSize: 10, color: "#94a3b8", textAlign: "right", maxWidth: 70, lineHeight: 1.3 }}>{sub}</div>}
       </div>
-      <div style={{ fontSize: "clamp(22px,4vw,30px)", fontWeight: 900, color: "#0d1f2d", letterSpacing: "-0.03em", lineHeight: 1, marginBottom: 6 }}>{value}</div>
-      <div style={{ fontSize: 13, color: "#94a3b8", fontWeight: 600 }}>{label}</div>
-      {sub && <div style={{ fontSize: 11, color: "#cbd5e1", marginTop: 3 }}>{sub}</div>}
+      <div style={{ fontSize: "clamp(20px,4vw,28px)", fontWeight: 900, color: "#0d1f2d", letterSpacing: "-0.03em", lineHeight: 1, marginBottom: 4 }}>{value}</div>
+      <div style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600 }}>{label}</div>
     </div>
   )
 }
@@ -164,31 +246,118 @@ function Overview({ stats, onNav }) {
         <h2 style={{ margin: "0 0 4px", fontSize: "clamp(18px,3vw,26px)", fontWeight: 900, color: "#0d1f2d", letterSpacing: "-0.02em", fontFamily: "'DM Sans',system-ui,sans-serif" }}>Platform Overview</h2>
         <p style={{ margin: 0, fontSize: 14, color: "#94a3b8" }}>Real-time snapshot of FindWithHabi.</p>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,190px),1fr))", gap: 16, marginBottom: 28 }}>
-        <StatCard label="Total Users"     value={stats.totalUsers}     icon={Users}         color={T}        sub="registered"                     delay={0}   onClick={() => onNav("users")} />
-        <StatCard label="Total Agents"    value={stats.totalAgents}    icon={Shield}        color="#8b5cf6"  sub={stats.verifiedAgents + " verified"} delay={60}  onClick={() => onNav("agents")} />
-        <StatCard label="Active Listings" value={stats.activeListings} icon={Building2}     color="#f59e0b"  sub={stats.flaggedListings + " flagged"}  delay={120} onClick={() => onNav("listings")} />
-        <StatCard label="Total Enquiries" value={stats.totalEnquiries} icon={MessageCircle} color="#10b981"  sub="all time"                        delay={180} onClick={() => onNav("enquiries")} />
-        <StatCard label="Verif. Pending"  value={stats.pendingVerifs}  icon={BadgeCheck}    color="#f59e0b"  sub="awaiting review"                 delay={240} onClick={() => onNav("verifications")} />
-        <StatCard label="New Reports"     value={stats.newReports}     icon={ClipboardList} color="#ef4444"  sub="from users/agents"               delay={300} onClick={() => onNav("reports")} />
+
+      {/* Urgent alerts banner */}
+      {(stats.newReports > 0 || stats.openTickets > 0 || stats.pendingVerifs > 0) && (
+        <div style={{ background: "#fff7ed", border: "1.5px solid #fed7aa", borderRadius: 16, padding: "14px 18px", marginBottom: 24, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", animation: "fadeUp 0.4s ease both" }}>
+          <span style={{ fontSize: 20 }}>⚠️</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#9a3412", marginBottom: 3 }}>Attention Required</div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              {stats.newReports > 0 && (
+                <button onClick={() => onNav("reports")} style={{ display: "flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 50, background: "#ef444415", border: "1px solid #ef444440", color: "#ef4444", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                  🚩 {stats.newReports} new {stats.newReports === 1 ? "report" : "reports"}
+                </button>
+              )}
+              {stats.openTickets > 0 && (
+                <button onClick={() => onNav("support")} style={{ display: "flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 50, background: "#8b5cf615", border: "1px solid #8b5cf640", color: "#8b5cf6", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                  🎧 {stats.openTickets} open {stats.openTickets === 1 ? "ticket" : "tickets"}
+                </button>
+              )}
+              {stats.pendingVerifs > 0 && (
+                <button onClick={() => onNav("verifications")} style={{ display: "flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 50, background: "#f59e0b15", border: "1px solid #f59e0b40", color: "#d97706", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                  ✅ {stats.pendingVerifs} pending {stats.pendingVerifs === 1 ? "verification" : "verifications"}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Stats grid */}
+      <div className="stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,160px),1fr))", gap: 12, marginBottom: 24 }}>
+        <StatCard label="Total Users"     value={stats.totalUsers}      icon={Users}         color={T}        sub="registered"                          delay={0}   onClick={() => onNav("users")} />
+        <StatCard label="Total Agents"    value={stats.totalAgents}     icon={Shield}        color="#8b5cf6"  sub={stats.verifiedAgents + " verified"}   delay={60}  onClick={() => onNav("agents")} />
+        <StatCard label="Active Listings" value={stats.activeListings}  icon={Building2}     color="#f59e0b"  sub={stats.flaggedListings + " flagged"}   delay={120} onClick={() => onNav("listings")} />
+        <StatCard label="Total Enquiries" value={stats.totalEnquiries}  icon={MessageCircle} color="#10b981"  sub="all time"                             delay={180} onClick={() => onNav("enquiries")} />
+        <StatCard label="Verif. Pending"  value={stats.pendingVerifs}   icon={BadgeCheck}    color="#f59e0b"  sub="awaiting review"                      delay={240} onClick={() => onNav("verifications")} />
+        <StatCard label="New Reports"     value={stats.newReports}      icon={ClipboardList}
+          color={stats.newReports > 0 ? "#ef4444" : "#94a3b8"}
+          sub={stats.newReports > 0 ? "⚠️ needs attention" : "no new reports"}
+          delay={300} onClick={() => onNav("reports")} />
+        <StatCard label="Open Tickets"    value={stats.openTickets || 0} icon={Headphones}   color="#8b5cf6"  sub="support requests"                     delay={360} onClick={() => onNav("support")} />
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,260px),1fr))", gap: 14, animation: "fadeUp 0.5s ease 360ms both" }}>
+
+      {/* Clarify difference between Reports and Support Tickets */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,280px),1fr))", gap: 12, marginBottom: 20, animation: "fadeUp 0.5s ease 320ms both" }}>
+        <div style={{ background: "#fff", borderRadius: 16, padding: "18px 20px", border: "1.5px solid #f1f5f9" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: "#ef444412", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <ClipboardList size={16} color="#ef4444" />
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "#0d1f2d" }}>Reports</div>
+              <div style={{ fontSize: 11, color: "#94a3b8" }}>Abuse & violation reports</div>
+            </div>
+          </div>
+          <p style={{ margin: "0 0 10px", fontSize: 12, color: "#64748b", lineHeight: 1.6 }}>
+            When a <strong>user reports a listing or agent</strong> for fraud, scam, fake listing, or bad behaviour. You review and take action (flag, remove, warn).
+          </p>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <button onClick={() => onNav("reports")} style={{ fontSize: 12, fontWeight: 700, color: "#ef4444", background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 4 }}>
+              View Reports <ChevronRight size={12} />
+            </button>
+            {stats.newReports > 0 && (
+              <span style={{ background: "#ef4444", color: "#fff", fontSize: 11, fontWeight: 800, padding: "2px 9px", borderRadius: 50 }}>
+                {stats.newReports} NEW
+              </span>
+            )}
+          </div>
+        </div>
+        <div style={{ background: "#fff", borderRadius: 16, padding: "18px 20px", border: "1.5px solid #f1f5f9" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: "#8b5cf612", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Headphones size={16} color="#8b5cf6" />
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "#0d1f2d" }}>Support Tickets</div>
+              <div style={{ fontSize: 11, color: "#94a3b8" }}>Help requests from users & agents</div>
+            </div>
+          </div>
+          <p style={{ margin: "0 0 10px", fontSize: 12, color: "#64748b", lineHeight: 1.6 }}>
+            When a <strong>user or agent needs help</strong> — account issues, payment problems, technical errors. You reply directly and mark as resolved.
+          </p>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <button onClick={() => onNav("support")} style={{ fontSize: 12, fontWeight: 700, color: "#8b5cf6", background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 4 }}>
+              View Tickets <ChevronRight size={12} />
+            </button>
+            {(stats.openTickets || 0) > 0 && (
+              <span style={{ background: "#8b5cf6", color: "#fff", fontSize: 11, fontWeight: 800, padding: "2px 9px", borderRadius: 50 }}>
+                {stats.openTickets} OPEN
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Quick actions */}
+      <div className="action-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,220px),1fr))", gap: 12, animation: "fadeUp 0.5s ease 400ms both" }}>
         {[
-          { icon: BadgeCheck,   color: "#10b981", bg: "#10b98108", title: "Verify Agents",       desc: stats.pendingVerifs + " pending applications",     action: () => onNav("verifications"), cta: "Review"       },
-          { icon: Flag,         color: "#ef4444", bg: "#ef444408", title: "Flagged Listings",     desc: stats.flaggedListings + " listings flagged",        action: () => onNav("listings"),      cta: "Review"       },
-          { icon: ClipboardList,color: "#8b5cf6", bg: "#8b5cf608", title: "User Reports",         desc: stats.newReports + " new reports to review",       action: () => onNav("reports"),       cta: "View Reports" },
-          { icon: Bell,         color: T,         bg: T + "08",    title: "Send Notification",    desc: "Broadcast to users or specific people",           action: () => onNav("notifications"), cta: "Compose"      },
+          { icon: BadgeCheck,   color: "#10b981", bg: "#10b98108", title: "Verify Agents",    desc: stats.pendingVerifs + " pending",          action: () => onNav("verifications"), cta: "Review" },
+          { icon: Flag,         color: "#ef4444", bg: "#ef444408", title: "Flagged Listings",  desc: stats.flaggedListings + " flagged",         action: () => onNav("listings"),      cta: "Review" },
+          { icon: ClipboardList,color: stats.newReports > 0 ? "#ef4444" : "#64748b", bg: stats.newReports > 0 ? "#ef444408" : "#f8fafc", title: "User Reports", desc: stats.newReports > 0 ? stats.newReports + " new — needs review" : "No new reports", action: () => onNav("reports"), cta: "View" },
+          { icon: Bell,         color: T,         bg: T + "08",    title: "Send Notification", desc: "Broadcast to all users",                   action: () => onNav("notifications"), cta: "Compose"},
         ].map(({ icon: Icon, color, bg, title, desc, action, cta }, i) => (
-          <div key={i} style={{ background: "#fff", borderRadius: 18, padding: "20px 22px", border: "1px solid #f1f5f9" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-              <div style={{ width: 38, height: 38, borderRadius: 11, background: bg, border: "1px solid " + color + "30", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Icon size={17} color={color} />
+          <div key={i} style={{ background: "#fff", borderRadius: 16, padding: "18px 20px", border: "1px solid #f1f5f9" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: bg, border: "1px solid " + color + "30", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Icon size={16} color={color} />
               </div>
               <div style={{ fontSize: 14, fontWeight: 800, color: "#0d1f2d" }}>{title}</div>
             </div>
-            <p style={{ margin: "0 0 12px", fontSize: 13, color: "#64748b" }}>{desc}</p>
-            <button onClick={action} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 700, color, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
-              {cta} <ChevronRight size={13} />
+            <p style={{ margin: "0 0 10px", fontSize: 12, color: "#64748b" }}>{desc}</p>
+            <button onClick={action} style={{ fontSize: 12, fontWeight: 700, color, background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 4 }}>
+              {cta} <ChevronRight size={12} />
             </button>
           </div>
         ))}
@@ -493,7 +662,7 @@ function VerificationsTab({ verifications, agents, loading, onRefresh }) {
           <p style={{ margin: "6px 0 0", fontSize: 12, color: "#cbd5e1" }}>Applications submitted by agents appear here.</p>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }} className="verif-layout">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 14 }} className="verif-layout">
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {filtered.map((v, i) => {
               const sc = statusConfig[v.status] || statusConfig.pending
@@ -816,24 +985,52 @@ function EnquiriesTab({ enquiries, loading }) {
 }
 
 // ─── Reports Tab ──────────────────────────────────────────────────────────────
-function ReportsTab({ reports, loading, onRefresh }) {
-  const [filter,  setFilter]  = useState("new")
-  const [active,  setActive]  = useState(null)
-  const [note,    setNote]    = useState("")
-  const [working, setWorking] = useState(false)
+function ReportsTab({ reports: parentReports, loading: parentLoading, onRefresh }) {
+  const [filter,      setFilter]      = useState("new")
+  const [active,      setActive]      = useState(null)
+  const [note,        setNote]        = useState("")
+  const [working,     setWorking]     = useState(false)
+  const [localReports,setLocalReports]= useState([])
+  const [localLoading,setLocalLoading]= useState(true)
 
+  // Fetch reports directly — don't rely on parent which may have join issues
+  const loadReports = async () => {
+    setLocalLoading(true)
+    const { data, error } = await supabase.from("reports").select("*").order("created_at", { ascending: false })
+    if (error) { setLocalLoading(false); return }
+
+    // Enrich with reporter info
+    if (data?.length > 0) {
+      const reporterIds = [...new Set(data.map(r => r.reporter_id).filter(Boolean))]
+      const { data: reporters } = await supabase.from("users").select("id, full_name, email").in("id", reporterIds)
+      const enriched = data.map(r => {
+        const reporter = reporters?.find(u => u.id === r.reporter_id)
+        return { ...r, reporter_name: reporter?.full_name || reporter?.email || "Anonymous" }
+      })
+      setLocalReports(enriched)
+    } else {
+      setLocalReports(data || [])
+    }
+    setLocalLoading(false)
+  }
+
+  useEffect(() => { loadReports() }, [])
+
+  const reports  = localReports.length > 0 ? localReports : parentReports
+  const loading  = localLoading && parentLoading
   const filtered = reports.filter(r => filter === "all" || r.status === filter)
 
   const resolve = async (r) => {
     setWorking(true)
     await supabase.from("reports").update({ status: "resolved", admin_note: note, resolved_at: new Date().toISOString() }).eq("id", r.id)
-    setWorking(false); setActive(null); setNote(""); onRefresh()
+    setWorking(false); setActive(null); setNote("")
+    loadReports(); onRefresh()
   }
 
   const markReview = async (r) => {
     setWorking(true)
     await supabase.from("reports").update({ status: "in_review" }).eq("id", r.id)
-    setWorking(false); onRefresh()
+    setWorking(false); loadReports(); onRefresh()
   }
 
   const typeConfig = {
@@ -852,7 +1049,11 @@ function ReportsTab({ reports, loading, onRefresh }) {
     <div>
       <div style={{ marginBottom: 20 }}>
         <h2 style={{ margin: "0 0 4px", fontSize: 20, fontWeight: 900, color: "#0d1f2d" }}>Reports ({reports.length})</h2>
-        <p style={{ margin: 0, fontSize: 13, color: "#94a3b8" }}>Reports submitted by users and agents.</p>
+        <p style={{ margin: "0 0 10px", fontSize: 13, color: "#94a3b8" }}>Abuse & violation reports — users reporting listings/agents for fraud, scams or bad behaviour.</p>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 12px", borderRadius: 50, background: "#ef444412", border: "1px solid #ef444430" }}>
+          <ClipboardList size={12} color="#ef4444" />
+          <span style={{ fontSize: 11, fontWeight: 700, color: "#ef4444" }}>These are NOT help requests — see Support Tickets for that</span>
+        </div>
       </div>
       <div style={{ display: "flex", background: "#f1f5f9", borderRadius: 12, padding: 4, gap: 2, marginBottom: 16, width: "fit-content" }}>
         {["new","in_review","resolved","all"].map(f => (
@@ -872,7 +1073,7 @@ function ReportsTab({ reports, loading, onRefresh }) {
           <p style={{ fontSize: 12, color: "#cbd5e1", margin: "6px 0 0" }}>Reports from users and agents appear here.</p>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }} className="verif-layout">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 14 }} className="verif-layout">
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {filtered.map((r, i) => {
               const tc = typeConfig[r.type] || typeConfig.other
@@ -887,7 +1088,7 @@ function ReportsTab({ reports, loading, onRefresh }) {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 800, color: "#0d1f2d", marginBottom: 2 }}>{r.subject}</div>
                     <div style={{ fontSize: 12, color: "#64748b", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" }}>{r.description}</div>
-                    <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>{tc.label} report · {new Date(r.created_at).toLocaleDateString()}</div>
+                    <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>{tc.label} report · {r.reporter_name || "Anonymous"} · {new Date(r.created_at || r.created_at).toLocaleDateString()}</div>
                   </div>
                   <span style={{ padding: "3px 10px", borderRadius: 50, background: sc.bg, color: sc.color, fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{sc.label}</span>
                 </button>
@@ -900,7 +1101,7 @@ function ReportsTab({ reports, loading, onRefresh }) {
               <div style={{ marginBottom: 16, paddingBottom: 14, borderBottom: "1px solid #f8fafc" }}>
                 <div style={{ fontSize: 16, fontWeight: 800, color: "#0d1f2d", marginBottom: 4 }}>{active.subject}</div>
                 <div style={{ fontSize: 12, color: "#94a3b8" }}>
-                  {typeConfig[active.type]?.label || "General"} report · {new Date(active.created_at).toLocaleDateString()}
+                  {typeConfig[active.type]?.label || "General"} report · {new Date(active.created_at || active.created_at).toLocaleDateString()}
                 </div>
               </div>
               <p style={{ margin: "0 0 16px", fontSize: 14, color: "#374151", lineHeight: 1.7 }}>{active.description}</p>
@@ -962,12 +1163,12 @@ function NotificationsTab({ users }) {
     if (isPersonal) {
       const targetUser = users.find(u => u.email === recipient || u.full_name?.toLowerCase() === recipient.toLowerCase())
       if (!targetUser) { setError("User not found."); setSending(false); return }
-      await supabase.from("notifications").insert({ sender_id: authUser.id, recipient_id: targetUser.id, type: notifType, title, message })
+      await supabase.from("notifications").insert({ user_id: targetUser.id, type: notifType, title, body: message })
     } else {
       let targetUsers = users
       if (target === "agents") targetUsers = users.filter(u => u.role === "agent")
       if (target === "buyers") targetUsers = users.filter(u => u.role === "buyer" || !u.role)
-      const rows = targetUsers.map(u => ({ sender_id: authUser.id, recipient_id: u.id, type: notifType, title, message }))
+      const rows = targetUsers.map(u => ({ user_id: u.id, type: notifType, title, body: message }))
       for (let i = 0; i < rows.length; i += 50) {
         await supabase.from("notifications").insert(rows.slice(i, i + 50))
       }
@@ -1102,7 +1303,7 @@ function NotificationsTab({ users }) {
                       <span style={{ fontSize: 13, fontWeight: 800, color: "#0d1f2d", flex: 1 }}>{n.title}</span>
                       <span style={{ fontSize: 10, color: "#94a3b8" }}>{new Date(n.created_at).toLocaleDateString()}</span>
                     </div>
-                    <p style={{ margin: 0, fontSize: 12, color: "#64748b", lineHeight: 1.5, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{n.message}</p>
+                    <p style={{ margin: 0, fontSize: 12, color: "#64748b", lineHeight: 1.5, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{n.body}</p>
                   </div>
                 )
               })}
@@ -1114,13 +1315,134 @@ function NotificationsTab({ users }) {
   )
 }
 
+
+// ─── Support Tickets Tab ──────────────────────────────────────────────────────
+function SupportTicketsTab() {
+  const [tickets,  setTickets]  = useState([])
+  const [loading,  setLoading]  = useState(true)
+  const [selected, setSelected] = useState(null)
+  const [reply,    setReply]    = useState("")
+  const [filter,   setFilter]   = useState("open")
+  const [sending,  setSending]  = useState(false)
+
+  useEffect(() => {
+    supabase.from("support_tickets")
+      .select("*, users(full_name, email, role)")
+      .order("created_at", { ascending: false })
+      .then(({ data }) => { setTickets(data || []); setLoading(false) })
+  }, [sending])
+
+  const filtered = tickets.filter(t => filter === "all" || t.status === filter)
+
+  const sendReply = async () => {
+    if (!reply.trim() || !selected) return
+    setSending(true)
+    await supabase.from("support_tickets").update({ admin_reply: reply, status: "resolved" }).eq("id", selected.id)
+    // Send notification to user
+    await supabase.from("notifications").insert({
+      user_id: selected.user_id,
+      type:    "personal",
+      title:   "Support Reply",
+      body:    "Your support ticket has been resolved: " + reply.trim(),
+    })
+    setReply("")
+    setSending(false)
+    setSelected(null)
+  }
+
+  const statusConfig = {
+    open:      { bg: "#ef444412", color: "#ef4444", label: "Open"      },
+    in_review: { bg: "#f59e0b12", color: "#d97706", label: "In Review" },
+    resolved:  { bg: "#10b98112", color: "#059669", label: "Resolved"  },
+  }
+
+  return (
+    <div>
+      <div style={{ marginBottom: 20 }}>
+        <h2 style={{ margin: "0 0 4px", fontSize: 20, fontWeight: 900, color: "#0d1f2d" }}>Support Tickets ({tickets.length})</h2>
+        <p style={{ margin: "0 0 10px", fontSize: 13, color: "#94a3b8" }}>Help requests from users & agents — account issues, payment problems, technical errors. Reply and resolve here.</p>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 12px", borderRadius: 50, background: "#8b5cf612", border: "1px solid #8b5cf630" }}>
+          <Headphones size={12} color="#8b5cf6" />
+          <span style={{ fontSize: 11, fontWeight: 700, color: "#8b5cf6" }}>These are help requests — NOT abuse reports (see Reports for that)</span>
+        </div>
+      </div>
+      <div style={{ display: "flex", background: "#f1f5f9", borderRadius: 12, padding: 4, gap: 2, marginBottom: 16, width: "fit-content" }}>
+        {["open","in_review","resolved","all"].map(f => (
+          <button key={f} onClick={() => { setFilter(f); setSelected(null) }}
+            style={{ padding: "7px 14px", borderRadius: 9, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, background: filter === f ? "#fff" : "transparent", color: filter === f ? "#0d1f2d" : "#64748b", boxShadow: filter === f ? "0 2px 8px rgba(0,0,0,0.08)" : "none", transition: "all 0.2s" }}>
+            {f === "all" ? "All" : f === "in_review" ? "In Review" : f.charAt(0).toUpperCase() + f.slice(1)}
+            {f === "open" && tickets.filter(t => t.status === "open").length > 0 && (
+              <span style={{ marginLeft: 4, background: "#ef4444", color: "#fff", fontSize: 9, fontWeight: 800, padding: "1px 5px", borderRadius: 50 }}>{tickets.filter(t => t.status === "open").length}</span>
+            )}
+          </button>
+        ))}
+      </div>
+      {loading ? <LoadingCard /> : (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 14 }} className="verif-layout">
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {filtered.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "60px 20px", color: "#94a3b8" }}>
+                <MessageCircle size={44} color="#cbd5e1" style={{ marginBottom: 14 }} />
+                <p style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>No {filter} tickets</p>
+              </div>
+            ) : filtered.map((t, i) => {
+              const sc = statusConfig[t.status] || statusConfig.open
+              return (
+                <button key={t.id} onClick={() => setSelected(selected?.id === t.id ? null : t)}
+                  style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 16px", borderRadius: 14, border: "1.5px solid " + (selected?.id === t.id ? T : "#f1f5f9"), background: selected?.id === t.id ? T + "06" : "#fff", cursor: "pointer", textAlign: "left", transition: "all 0.2s", animation: "fadeUp 0.4s ease " + (i * 35) + "ms both" }}>
+                  <div style={{ width: 38, height: 38, borderRadius: "50%", background: T + "18", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 900, color: T, flexShrink: 0 }}>
+                    {(t.users?.full_name || "U").charAt(0)}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: "#0d1f2d", marginBottom: 2 }}>{t.subject}</div>
+                    <div style={{ fontSize: 12, color: "#64748b" }}>{t.users?.full_name} · {t.users?.role} · {new Date(t.created_at).toLocaleDateString()}</div>
+                    <p style={{ margin: "4px 0 0", fontSize: 12, color: "#94a3b8", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" }}>{t.message}</p>
+                  </div>
+                  <span style={{ padding: "3px 10px", borderRadius: 50, background: sc.bg, color: sc.color, fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{sc.label}</span>
+                </button>
+              )
+            })}
+          </div>
+          {selected && (
+            <div style={{ background: "#fff", borderRadius: 18, border: "1px solid #f1f5f9", padding: "22px", animation: "fadeUp 0.3s ease both" }}>
+              <div style={{ marginBottom: 16, paddingBottom: 14, borderBottom: "1px solid #f8fafc" }}>
+                <div style={{ fontSize: 16, fontWeight: 800, color: "#0d1f2d", marginBottom: 4 }}>{selected.subject}</div>
+                <div style={{ fontSize: 12, color: "#94a3b8" }}>{selected.users?.full_name} ({selected.users?.role}) · {selected.users?.email}</div>
+              </div>
+              <div style={{ background: "#f8fafc", borderRadius: 12, padding: "14px 16px", marginBottom: 16 }}>
+                <p style={{ margin: 0, fontSize: 14, color: "#374151", lineHeight: 1.7 }}>{selected.message}</p>
+              </div>
+              {selected.admin_reply && (
+                <div style={{ background: T + "08", borderRadius: 12, padding: "12px 16px", marginBottom: 16, borderLeft: "3px solid " + T }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: T, marginBottom: 4 }}>Admin Reply</div>
+                  <p style={{ margin: 0, fontSize: 13, color: "#374151" }}>{selected.admin_reply}</p>
+                </div>
+              )}
+              {selected.status !== "resolved" && (
+                <>
+                  <textarea value={reply} onChange={e => setReply(e.target.value)} rows={3} placeholder="Type your reply…"
+                    style={{ width: "100%", padding: "11px 14px", borderRadius: 12, border: "1.5px solid #e2e8f0", fontSize: 14, color: "#0d1f2d", fontFamily: "inherit", outline: "none", resize: "none", background: "#f8fafc", boxSizing: "border-box", marginBottom: 10 }} />
+                  <button onClick={sendReply} disabled={sending || !reply.trim()}
+                    style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 12, background: sending ? T + "70" : T, border: "none", color: "#fff", fontSize: 14, fontWeight: 800, cursor: sending ? "not-allowed" : "pointer" }}>
+                    {sending ? <><Loader size={15} style={{ animation: "spin 1s linear infinite" }} /> Sending…</> : <><Send size={15} /> Send Reply & Resolve</>}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function AdminDashboard() {
   const router = useRouter()
   const [tab,           setTab]           = useState("overview")
   const [sidebarOpen,   setSidebarOpen]   = useState(false)
   const [adminUser,     setAdminUser]     = useState(null)
-  const [stats,         setStats]         = useState({ totalUsers: 0, totalAgents: 0, verifiedAgents: 0, activeListings: 0, flaggedListings: 0, totalEnquiries: 0, pendingVerifs: 0, newReports: 0 })
+  const [stats,         setStats]         = useState({ totalUsers: 0, totalAgents: 0, verifiedAgents: 0, activeListings: 0, flaggedListings: 0, totalEnquiries: 0, pendingVerifs: 0, newReports: 0, openTickets: 0 })
   const [listings,      setListings]      = useState([])
   const [agents,        setAgents]        = useState([])
   const [users,         setUsers]         = useState([])
@@ -1143,7 +1465,8 @@ export default function AdminDashboard() {
       { data: allListings },
       { data: allEnquiries },
       { data: allVerifs },
-      { data: allReports },
+      { data: allReports, error: reportsError },
+      { data: openTickets },
     ] = await Promise.all([
       supabase.from("users").select("*").order("created_at", { ascending: false }),
       supabase.from("agents").select("*, users(full_name, email, phone, avatar_url)").order("created_at", { ascending: false }),
@@ -1151,8 +1474,10 @@ export default function AdminDashboard() {
       supabase.from("enquiries").select("*, listings(title), users(full_name)").order("created_at", { ascending: false }),
       supabase.from("verification_requests").select("*").order("submitted_at", { ascending: false }),
       supabase.from("reports").select("*").order("created_at", { ascending: false }),
+      supabase.from("support_tickets").select("id, status").eq("status", "open"),
     ])
 
+    
     let formattedListings = allListings || []
     if (formattedListings.length > 0) {
       const ids = formattedListings.map(l => l.id)
@@ -1169,12 +1494,18 @@ export default function AdminDashboard() {
       listing_count: formattedListings.filter(l => l.agent_id === a.id).length,
     }))
 
+    // Enrich reports with reporter name from users array
+    const enrichedReports = (allReports || []).map(r => {
+      const reporter = (allUsers || []).find(u => u.id === r.reporter_id)
+      return { ...r, reporter_name: reporter?.full_name || reporter?.email || "Unknown" }
+    })
+
     setUsers(allUsers || [])
     setAgents(agentsWithCounts)
     setListings(formattedListings)
     setEnquiries(allEnquiries || [])
     setVerifications(allVerifs || [])
-    setReports(allReports || [])
+    setReports(enrichedReports)
 
     setStats({
       totalUsers:      (allUsers || []).length,
@@ -1185,6 +1516,7 @@ export default function AdminDashboard() {
       totalEnquiries:  (allEnquiries || []).length,
       pendingVerifs:   (allVerifs || []).filter(v => v.status === "pending").length,
       newReports:      (allReports || []).filter(r => r.status === "new").length,
+      openTickets:     (openTickets || []).length,
     })
 
     setLoading(false)
@@ -1197,16 +1529,41 @@ export default function AdminDashboard() {
     return () => window.removeEventListener("resize", fn)
   }, [])
 
+  // Poll every 30 seconds for new reports, support tickets, verifications
+  // so sidebar badges + overview update without full page refresh
+  useEffect(() => {
+    const pollCounts = async () => {
+      const [
+        { data: newReportsData },
+        { data: openTicketsData },
+        { data: pendingVerifsData },
+      ] = await Promise.all([
+        supabase.from("reports").select("id", { count: "exact" }).eq("status", "new"),
+        supabase.from("support_tickets").select("id").eq("status", "open"),
+        supabase.from("verification_requests").select("id").eq("status", "pending"),
+      ])
+      setStats(prev => ({
+        ...prev,
+        newReports:    (newReportsData   || []).length,
+        openTickets:   (openTicketsData  || []).length,
+        pendingVerifs: (pendingVerifsData || []).length,
+      }))
+    }
+    const interval = setInterval(pollCounts, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
   const badges = {
     verifications: stats.pendingVerifs,
     reports:       stats.newReports,
     listings:      stats.flaggedListings,
+    support:       stats.openTickets || 0,
   }
 
   const titles = {
     overview: "Overview", listings: "Listings", verifications: "Verifications",
     agents: "Agents", users: "Users", enquiries: "Enquiries",
-    reports: "Reports", notifications: "Notifications",
+    reports: "Reports", notifications: "Notifications", support: "Support Tickets",
   }
 
   const renderTab = () => {
@@ -1219,6 +1576,7 @@ export default function AdminDashboard() {
     if (tab === "enquiries")     return <EnquiriesTab enquiries={enquiries} loading={loading} />
     if (tab === "reports")       return <ReportsTab reports={reports} loading={loading} onRefresh={fetchData} />
     if (tab === "notifications") return <NotificationsTab users={users} />
+    if (tab === "support")       return <SupportTicketsTab />
     return null
   }
 
@@ -1226,8 +1584,8 @@ export default function AdminDashboard() {
     <div style={{ minHeight: "100svh", background: "#f8fafc", fontFamily: "'DM Sans',system-ui,sans-serif", display: "flex" }}>
       <Sidebar active={tab} onNav={setTab} open={sidebarOpen} onClose={() => setSidebarOpen(false)} adminUser={adminUser} badges={badges} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }} className="main-area">
-        <Topbar title={titles[tab]} onMenuOpen={() => setSidebarOpen(true)} onRefresh={fetchData} />
-        <main style={{ flex: 1, padding: "24px 16px 48px", maxWidth: 1200, width: "100%", margin: "0 auto", boxSizing: "border-box" }} className="main-container">
+        <Topbar title={titles[tab]} onMenuOpen={() => setSidebarOpen(true)} onRefresh={fetchData} adminUserId={adminUser?.id} />
+        <main style={{ flex: 1, padding: "16px 12px 48px", maxWidth: 1200, width: "100%", margin: "0 auto", boxSizing: "border-box" }} className="main-container">
           {renderTab()}
         </main>
       </div>
@@ -1243,6 +1601,24 @@ export default function AdminDashboard() {
         @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
         @keyframes spin   { to{transform:rotate(360deg)} }
         .sidebar-close { display: flex !important; }
+        /* Mobile base styles */
+        .verif-layout  { grid-template-columns: 1fr !important; }
+        .notif-layout  { grid-template-columns: 1fr !important; }
+        .stats-grid    { grid-template-columns: repeat(2, 1fr) !important; }
+        .action-grid   { grid-template-columns: 1fr !important; }
+        /* Hide admin panel badge text on small screens */
+        @media (max-width: 480px) {
+          .admin-badge-text { display: none !important; }
+          .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+        @media (min-width: 640px) {
+          .stats-grid { grid-template-columns: repeat(3, 1fr) !important; }
+          .action-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+        @media (min-width: 768px) {
+          .main-container { padding: 24px 24px 48px !important; }
+          .action-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
         @media (min-width: 1024px) {
           .sidebar { transform: translateX(0) !important; box-shadow: none !important; }
           .sidebar-close { display: none !important; }
@@ -1251,9 +1627,8 @@ export default function AdminDashboard() {
           .main-container { padding: 28px 32px 64px !important; }
           .verif-layout { grid-template-columns: 1fr 380px !important; align-items: start; }
           .notif-layout { grid-template-columns: 1fr 1fr !important; }
-        }
-        @media (min-width: 768px) {
-          .main-container { padding: 24px 24px 48px !important; }
+          .stats-grid { grid-template-columns: repeat(4, 1fr) !important; }
+          .action-grid { grid-template-columns: repeat(4, 1fr) !important; }
         }
         @media (prefers-reduced-motion: reduce) {
           *,*::before,*::after { animation-duration:0.01ms !important; transition-duration:0.01ms !important; }

@@ -1,0 +1,20 @@
+{
+  "name": "FindWithHabi",
+  "short_name": "FindWithHabi",
+  "description": "Nigeria's trusted property platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080f14",
+  "theme_color": "#0097B2",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "categories": ["business", "finance", "lifestyle"],
+  "lang": "en-NG"
+}
