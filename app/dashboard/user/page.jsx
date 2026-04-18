@@ -128,7 +128,7 @@ function NotificationBell({ userId, onOpen, onNavToEnquiries }) {
       {open && (
         <>
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 10 }} />
-          <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, zIndex: 200, width: 320, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 18, boxShadow: "0 16px 48px rgba(0,0,0,0.15)", overflow: "hidden" }}>
+          <div style={{ position: "fixed", top: 70, right: 8, left: 8, zIndex: 200, maxWidth: 380, marginLeft: "auto", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 18, boxShadow: "0 16px 48px rgba(0,0,0,0.15)", overflow: "hidden" }}>
             <div style={{ padding: "14px 16px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <span style={{ fontSize: 14, fontWeight: 800, color: "#0d1f2d" }}>Notifications {unread > 0 && <span style={{ background: "#ef4444", color: "#fff", fontSize: 10, padding: "2px 6px", borderRadius: 50, marginLeft: 4 }}>{unread}</span>}</span>
               {unread > 0 && <button onClick={markAllRead} style={{ fontSize: 11, color: T, fontWeight: 700, background: "none", border: "none", cursor: "pointer" }}>Mark all read</button>}
@@ -1333,15 +1333,17 @@ export default function UserDashboard() {
         @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
         @keyframes spin   { to{transform:rotate(360deg)} }
         .sidebar-close { display: flex !important; }
+        /* Mobile base */
         .enquiry-layout { grid-template-columns: 1fr !important; }
-        /* Mobile chat: hide list when chat open, show back button */
         .hide-on-mobile { display: none !important; }
         .back-btn-mobile { display: flex !important; }
+        .overview-grid  { grid-template-columns: repeat(2, 1fr) !important; }
         @media (min-width: 768px) {
           .hide-on-mobile { display: block !important; }
           .back-btn-mobile { display: none !important; }
           .main-container { padding: 24px 24px 48px !important; }
           .enquiry-layout { grid-template-columns: 260px 1fr !important; }
+          .overview-grid  { grid-template-columns: repeat(3, 1fr) !important; }
         }
         @media (min-width: 1024px) {
           .sidebar { transform: translateX(0) !important; box-shadow: none !important; }
@@ -1350,6 +1352,7 @@ export default function UserDashboard() {
           .menu-btn  { display: none !important; }
           .main-container { padding: 28px 32px 64px !important; }
           .enquiry-layout { grid-template-columns: 300px 1fr !important; }
+          .overview-grid  { grid-template-columns: repeat(4, 1fr) !important; }
         }
         @media (prefers-reduced-motion: reduce) {
           *,*::before,*::after { animation-duration:0.01ms !important; transition-duration:0.01ms !important; }

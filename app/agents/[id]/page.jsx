@@ -17,6 +17,22 @@ const T_GLOW = "#0097B244"
 const DARK   = "#080f14"
 
 // ─── NavBar ───────────────────────────────────────────────────────────────────
+// ─── Smart Back Button ────────────────────────────────────────────────────────
+function AgentBackButton({ authUser, dashboardLink }) {
+  const router = useRouter()
+  const handleBack = () => {
+    if (window.history.length > 1) { router.back(); return }
+    if (authUser) { router.push(dashboardLink); return }
+    router.push("/agents")
+  }
+  return (
+    <button onClick={handleBack}
+      style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 50, border: "1.5px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.8)", fontSize: 13, fontWeight: 700, background: "none", cursor: "pointer" }}>
+      <ArrowLeft size={14} /> Back
+    </button>
+  )
+}
+
 function NavBar() {
   const [scrolled,  setScrolled]  = useState(false)
   const [authUser,  setAuthUser]  = useState(null)
@@ -26,7 +42,8 @@ function NavBar() {
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 20)
     window.addEventListener("scroll", fn, { passive: true })
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const user = session?.user || null
       setAuthUser(user)
       if (user) {
         supabase.from("users").select("role").eq("id", user.id).single()
@@ -48,9 +65,7 @@ function NavBar() {
           <img src="/findwithhabilogo.png" alt="FindWithHabi" style={{ height: 64, width: "auto", objectFit: "contain" }} />
         </Link>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Link href="/agents" style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 50, border: "1.5px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.8)", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
-            <ArrowLeft size={14} /> All Agents
-          </Link>
+          <AgentBackButton authUser={authUser} dashboardLink={dashboardLink} />
           {authReady && (
             authUser
               ? <Link href={dashboardLink} style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 20px", borderRadius: 50, background: "rgba(255,255,255,0.1)", border: "1.5px solid rgba(255,255,255,0.2)", color: "#fff", fontSize: 13, fontWeight: 800, textDecoration: "none" }}>
@@ -226,7 +241,8 @@ export default function AgentProfilePage() {
 
     const init = async () => {
       // Auth
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session: _s } } = await supabase.auth.getSession()
+      const user = _s?.user || null
       setAuthUser(user)
       if (user) {
         const { data: ud } = await supabase.from("users").select("full_name, email, phone").eq("id", user.id).single()

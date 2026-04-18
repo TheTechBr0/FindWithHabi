@@ -142,7 +142,7 @@ function NotificationBell({ userId, onNavToEnquiries }) {
       {open && (
         <>
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 10 }} />
-          <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, zIndex: 200, width: 320, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 18, boxShadow: "0 16px 48px rgba(0,0,0,0.15)", overflow: "hidden", animation: "fadeUp 0.2s ease" }}>
+          <div style={{ position: "fixed", top: 70, right: 8, left: 8, zIndex: 200, maxWidth: 380, marginLeft: "auto", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 18, boxShadow: "0 16px 48px rgba(0,0,0,0.15)", overflow: "hidden", animation: "fadeUp 0.2s ease" }}>
             <div style={{ padding: "14px 16px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <span style={{ fontSize: 14, fontWeight: 800, color: "#0d1f2d" }}>Notifications {unread > 0 && <span style={{ background: "#ef4444", color: "#fff", fontSize: 10, fontWeight: 800, padding: "2px 6px", borderRadius: 50, marginLeft: 4 }}>{unread}</span>}</span>
               {unread > 0 && <button onClick={markAllRead} style={{ fontSize: 11, color: T, fontWeight: 700, background: "none", border: "none", cursor: "pointer" }}>Mark all read</button>}
@@ -1556,27 +1556,32 @@ export default function AgentDashboard() {
         :focus-visible { outline: 2px solid ${T}; outline-offset: 3px; border-radius: 4px; }
         @keyframes fadeUp  { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
         @keyframes slideUp { from{opacity:0;transform:translateY(40px)} to{opacity:1;transform:none} }
-        @keyframes slideUp { from{opacity:0;transform:translateY(40px)} to{opacity:1;transform:none} }
         @keyframes spin    { to{transform:rotate(360deg)} }
         @keyframes popIn   { from{transform:scale(0.5);opacity:0} to{transform:scale(1);opacity:1} }
+        /* Mobile base — single column, full width */
         .sidebar-close { display: flex !important; }
+        .charts-grid   { grid-template-columns: 1fr !important; }
+        .enquiry-layout { grid-template-columns: 1fr !important; }
+        .two-col       { grid-template-columns: 1fr !important; }
+        .hide-on-mobile { display: none !important; }
+        .back-btn-mobile { display: flex !important; }
+        @media (min-width: 480px) {
+          .two-col { grid-template-columns: 1fr 1fr !important; }
+        }
+        @media (min-width: 768px) {
+          .hide-on-mobile { display: block !important; }
+          .back-btn-mobile { display: none !important; }
+          .main-container { padding: 24px 24px 48px !important; }
+          .enquiry-layout { grid-template-columns: 300px 1fr !important; }
+          .charts-grid    { grid-template-columns: 1fr 1fr !important; }
+        }
         @media (min-width: 1024px) {
           .sidebar { transform: translateX(0) !important; box-shadow: none !important; }
           .sidebar-close { display: none !important; }
           .main-area { margin-left: 260px !important; }
           .menu-btn { display: none !important; }
           .main-container { padding: 28px 32px 64px !important; }
-          .charts-grid { grid-template-columns: 1fr 1fr !important; }
           .enquiry-layout { grid-template-columns: 340px 1fr !important; }
-          .two-col { grid-template-columns: 1fr 1fr !important; }
-        }
-        .hide-on-mobile { display: none !important; }
-        .back-btn-mobile { display: flex !important; }
-        @media (min-width: 768px) {
-          .hide-on-mobile { display: block !important; }
-          .back-btn-mobile { display: none !important; }
-          .main-container { padding: 24px 24px 48px !important; }
-          .enquiry-layout { grid-template-columns: 300px 1fr !important; }
           .two-col { grid-template-columns: 1fr 1fr !important; }
         }
         @media (prefers-reduced-motion: reduce) {
