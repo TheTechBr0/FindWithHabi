@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://findwithhabi.vercel.app"
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://find-with-habi.vercel.app"
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url)
