@@ -1,45 +1,44 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
 const T    = "#0097B2"
 const DARK = "#080f14"
 
-function PickRole() {
-  const router          = useRouter()
+export default function PickRolePage() {
+  const router         = useRouter()
   const [picking,  setPicking]  = useState(false)
   const [loading,  setLoading]  = useState(true)
   const [user,     setUser]     = useState(null)
 
   useEffect(() => {
-    // Session is already set by Supabase after OAuth — just get it
     const getUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
 
-      if (!session) {
-        // No session — go back to login
+        if (!session) {
+          router.push("/auth")
+          return
+        }
+
+        const uid   = session.user.id
+        const email = session.user.email
+        const name  = session.user.user_metadata?.full_name
+                   || session.user.user_metadata?.name
+                   || email?.split("@")[0]
+                   || "User"
+        const avatar = session.user.user_metadata?.avatar_url
+                    || session.user.user_metadata?.picture
+                    || null
+
+        setUser({ id: uid, name, email, avatar })
+        setLoading(false)
+      } catch (err) {
         router.push("/auth")
-        return
       }
-
-      // Get user info from our users table
-      const { data: userData } = await supabase
-        .from("users")
-        .select("*")
-        .eq("id", session.user.id)
-        .single()
-
-      setUser({
-        id:     session.user.id,
-        name:   userData?.full_name || session.user.user_metadata?.full_name || "User",
-        email:  session.user.email,
-        avatar: userData?.avatar_url || session.user.user_metadata?.avatar_url || null,
-      })
-      setLoading(false)
     }
-
     getUser()
   }, [])
 
@@ -47,10 +46,8 @@ function PickRole() {
     if (!user || picking) return
     setPicking(true)
 
-    // Update role in users table
     await supabase.from("users").update({ role }).eq("id", user.id)
 
-    // If agent, create agents row
     if (role === "agent") {
       await supabase.from("agents").insert({
         user_id:       user.id,
@@ -69,7 +66,8 @@ function PickRole() {
     return (
       <div style={{ minHeight: "100svh", display: "flex", alignItems: "center", justifyContent: "center", background: DARK }}>
         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke={T} strokeWidth="2" style={{ animation: "spin 1s linear infinite" }}>
-          <circle cx="12" cy="12" r="10" strokeOpacity="0.25" /><path d="M12 2a10 10 0 0 1 10 10" />
+          <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
+          <path d="M12 2a10 10 0 0 1 10 10" />
         </svg>
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
@@ -83,12 +81,10 @@ function PickRole() {
     }}>
       <div style={{ width: "100%", maxWidth: 440, animation: "fadeUp 0.5s ease both" }}>
 
-        {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <img src="/findwithhabilogo.png" alt="FindWithHabi" style={{ height: 48, objectFit: "contain" }} />
         </div>
 
-        {/* Card */}
         <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 24, padding: "32px 28px" }}>
 
           {/* User info */}
@@ -110,7 +106,6 @@ function PickRole() {
           </p>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {/* Buyer */}
             <button onClick={() => pickRole("buyer")} disabled={picking}
               style={{ display: "flex", alignItems: "center", gap: 16, padding: "18px 20px", borderRadius: 16, border: "1.5px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", cursor: picking ? "not-allowed" : "pointer", textAlign: "left", transition: "all 0.2s", opacity: picking ? 0.6 : 1, width: "100%" }}
               onMouseEnter={e => { if (!picking) { e.currentTarget.style.border = "1.5px solid " + T; e.currentTarget.style.background = T + "12" } }}
@@ -122,7 +117,6 @@ function PickRole() {
               </div>
             </button>
 
-            {/* Agent */}
             <button onClick={() => pickRole("agent")} disabled={picking}
               style={{ display: "flex", alignItems: "center", gap: 16, padding: "18px 20px", borderRadius: 16, border: "1.5px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", cursor: picking ? "not-allowed" : "pointer", textAlign: "left", transition: "all 0.2s", opacity: picking ? 0.6 : 1, width: "100%" }}
               onMouseEnter={e => { if (!picking) { e.currentTarget.style.border = "1.5px solid #f59e0b"; e.currentTarget.style.background = "#f59e0b12" } }}
@@ -138,12 +132,17 @@ function PickRole() {
           {picking && (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginTop: 20, color: "rgba(255,255,255,0.4)", fontSize: 13 }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: "spin 1s linear infinite" }}>
-                <circle cx="12" cy="12" r="10" strokeOpacity="0.25" /><path d="M12 2a10 10 0 0 1 10 10" />
+                <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
+                <path d="M12 2a10 10 0 0 1 10 10" />
               </svg>
               Setting up your account…
             </div>
           )}
         </div>
+
+        <p style={{ textAlign: "center", marginTop: 20, fontSize: 12, color: "rgba(255,255,255,0.2)" }}>
+          You can only have one account type per Google account
+        </p>
       </div>
 
       <style>{`
@@ -153,20 +152,5 @@ function PickRole() {
         @keyframes fadeUp { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: none } }
       `}</style>
     </div>
-  )
-}
-
-export default function PickRolePage() {
-  return (
-    <Suspense fallback={
-      <div style={{ minHeight: "100svh", display: "flex", alignItems: "center", justifyContent: "center", background: "#080f14" }}>
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0097B2" strokeWidth="2" style={{ animation: "spin 1s linear infinite" }}>
-          <circle cx="12" cy="12" r="10" strokeOpacity="0.25" /><path d="M12 2a10 10 0 0 1 10 10" />
-        </svg>
-        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-      </div>
-    }>
-      <PickRole />
-    </Suspense>
   )
 }
