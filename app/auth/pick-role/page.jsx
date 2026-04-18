@@ -17,8 +17,9 @@ export default function PickRolePage() {
   useEffect(() => {
     const init = async () => {
       try {
-        // Get tokens from URL
-        const params       = new URLSearchParams(window.location.search)
+        // Get tokens from URL hash fragment (e.g. #access_token=xxx&refresh_token=xxx)
+        const hash         = window.location.hash.substring(1)
+        const params       = new URLSearchParams(hash)
         const accessToken  = params.get("access_token")
         const refreshToken = params.get("refresh_token")
 

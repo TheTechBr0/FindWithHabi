@@ -42,9 +42,7 @@ export async function GET(request) {
     role:       "buyer",
   })
 
-  // Send to pick-role with token in URL so client can restore session
-  const url = new URL(SITE_URL + "/auth/pick-role")
-  url.searchParams.set("access_token",  session.access_token)
-  url.searchParams.set("refresh_token", session.refresh_token)
-  return NextResponse.redirect(url.toString())
+  // Use hash fragment instead of query params — tokens are not URL-encoded this way
+  const redirectUrl = SITE_URL + "/auth/pick-role#access_token=" + session.access_token + "&refresh_token=" + session.refresh_token
+  return NextResponse.redirect(redirectUrl)
 }
