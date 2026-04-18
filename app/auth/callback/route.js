@@ -1,6 +1,5 @@
-import { createServerClient } from "@supabase/ssr"
+import { createClient } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
-import { cookies } from "next/headers"
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://find-with-habi.vercel.app"
 
@@ -10,41 +9,31 @@ export async function GET(request) {
 
   if (!code) return NextResponse.redirect(SITE_URL + "/auth?error=no_code")
 
-  const cookieStore = cookies()
-  const response = NextResponse.redirect(SITE_URL + "/auth/pick-role")
-
-  const supabase = createServerClient(
+  const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    {
-      cookies: {
-        get(name) { return cookieStore.get(name)?.value },
-        set(name, value, options) { response.cookies.set({ name, value, ...options }) },
-        remove(name, options) { response.cookies.set({ name, value: "", ...options }) },
-      },
-    }
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   )
 
-  const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code)
-  if (error || !session) return NextResponse.redirect(SITE_URL + "/auth?error=oauth_failed")
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+  if (error || !data.session) return NextResponse.redirect(SITE_URL + "/auth?error=oauth_failed")
 
-  const userId = session.user.id
-  const email  = session.user.email
-  const name   = session.user.user_metadata?.full_name || session.user.user_metadata?.name || email?.split("@")[0] || "User"
-  const avatar = session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null
+  const session = data.session
+  const userId  = session.user.id
+  const email   = session.user.email
+  const name    = session.user.user_metadata?.full_name || session.user.user_metadata?.name || email?.split("@")[0] || "User"
+  const avatar  = session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null
 
   // Check if user already exists
   const { data: existingUser } = await supabase
     .from("users").select("id, role").eq("id", userId).single()
 
   if (existingUser) {
-    if (existingUser.role === "admin") { response.headers.set("Location", SITE_URL + "/dashboard/admin"); return response }
-    if (existingUser.role === "agent") { response.headers.set("Location", SITE_URL + "/dashboard/agent"); return response }
-    response.headers.set("Location", SITE_URL + "/dashboard/user")
-    return response
+    if (existingUser.role === "admin") return NextResponse.redirect(SITE_URL + "/dashboard/admin")
+    if (existingUser.role === "agent") return NextResponse.redirect(SITE_URL + "/dashboard/agent")
+    return NextResponse.redirect(SITE_URL + "/dashboard/user")
   }
 
-  // New user — create with buyer role, let pick-role update it
+  // New user — create with buyer role first
   await supabase.from("users").insert({
     id:         userId,
     email,
@@ -53,6 +42,9 @@ export async function GET(request) {
     role:       "buyer",
   })
 
-  // response already redirects to /auth/pick-role with session cookie set
-  return response
+  // Send to pick-role with token in URL so client can restore session
+  const url = new URL(SITE_URL + "/auth/pick-role")
+  url.searchParams.set("access_token",  session.access_token)
+  url.searchParams.set("refresh_token", session.refresh_token)
+  return NextResponse.redirect(url.toString())
 }
