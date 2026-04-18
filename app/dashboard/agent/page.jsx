@@ -971,7 +971,7 @@ function Enquiries({ enquiries, loading, onRefresh, targetEnquiryId, onClearTarg
     <div>
       <h2 style={{ margin: "0 0 20px", fontSize: 20, fontWeight: 900, color: "#0d1f2d", letterSpacing: "-0.02em" }}>Enquiries ({enquiries.length})</h2>
       <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }} className="enquiry-layout">
-        <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #f1f5f9", overflow: "hidden" }}>
+        <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #f1f5f9", overflow: "hidden" }} className={selected ? "hide-on-mobile" : ""}>
           <div style={{ padding: "16px 18px 12px", borderBottom: "1px solid #f8fafc" }}>
             <div style={{ display: "flex", background: "#f1f5f9", borderRadius: 10, padding: 3, gap: 2 }}>
               {["all","new","replied","closed"].map(f => (
@@ -1008,7 +1008,8 @@ function Enquiries({ enquiries, loading, onRefresh, targetEnquiryId, onClearTarg
           {active ? (
             <>
               <div style={{ padding: "18px 22px", borderBottom: "1px solid #f8fafc", flexShrink: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                  <button onClick={() => setSelected(null)} className="back-btn-mobile" style={{ width: 32, height: 32, borderRadius: 8, background: "#f1f5f9", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
                   <div style={{ width: 44, height: 44, borderRadius: "50%", background: T + "18", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 800, color: T, flexShrink: 0 }}>{(active.sender_name || active.users?.full_name || "?").charAt(0)}</div>
                   <div><div style={{ fontSize: 15, fontWeight: 800, color: "#0d1f2d" }}>{active.sender_name || active.users?.full_name || "Anonymous"}</div><div style={{ fontSize: 12, color: "#94a3b8" }}>{active.listings?.title || "General enquiry"}</div></div>
                 </div>
@@ -1462,8 +1463,16 @@ export default function AgentDashboard() {
 
   const fetchData = async () => {
     setLoading(true)
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
-    if (authError || !authUser) { router.push("/auth"); return }
+    // Try getUser first, fall back to getSession for mobile browsers
+    let authUser = null
+    const { data: { user: u }, error: authError } = await supabase.auth.getUser()
+    if (u) {
+      authUser = u
+    } else {
+      const { data: { session } } = await supabase.auth.getSession()
+      authUser = session?.user || null
+    }
+    if (!authUser) { router.push("/auth"); return }
     const { data: userData } = await supabase.from("users").select("*").eq("id", authUser.id).single()
     setUser(userData)
     const { data: agentData } = await supabase.from("agents").select("*").eq("user_id", authUser.id).single()
@@ -1488,10 +1497,21 @@ export default function AgentDashboard() {
   }
 
   useEffect(() => {
+    // Use onAuthStateChange so mobile browsers get session before redirect check
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT" || (!session && event !== "INITIAL_SESSION")) {
+        router.push("/auth")
+      } else if (session) {
+        fetchData()
+      }
+    })
     fetchData()
     const fn = () => { if (window.innerWidth >= 1024) setSidebarOpen(false) }
     window.addEventListener("resize", fn)
-    return () => window.removeEventListener("resize", fn)
+    return () => {
+      subscription?.unsubscribe()
+      window.removeEventListener("resize", fn)
+    }
   }, [])
 
   const titles = {
@@ -1550,7 +1570,11 @@ export default function AgentDashboard() {
           .enquiry-layout { grid-template-columns: 340px 1fr !important; }
           .two-col { grid-template-columns: 1fr 1fr !important; }
         }
+        .hide-on-mobile { display: none !important; }
+        .back-btn-mobile { display: flex !important; }
         @media (min-width: 768px) {
+          .hide-on-mobile { display: block !important; }
+          .back-btn-mobile { display: none !important; }
           .main-container { padding: 24px 24px 48px !important; }
           .enquiry-layout { grid-template-columns: 300px 1fr !important; }
           .two-col { grid-template-columns: 1fr 1fr !important; }

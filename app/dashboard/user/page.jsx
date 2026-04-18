@@ -421,7 +421,7 @@ function MyEnquiries({ enquiries, loading, onRefresh, userData, authUser }) {
     <div>
       <h2 style={{ margin: "0 0 20px", fontSize: 20, fontWeight: 900, color: "#0d1f2d" }}>My Enquiries ({enquiries.length})</h2>
       <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }} className="enquiry-layout">
-        <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #f1f5f9", overflow: "hidden" }}>
+        <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #f1f5f9", overflow: "hidden" }} className={selected ? "hide-on-mobile" : ""}>
           {enquiries.map(e => {
             const sc = statusMap[e.status] || statusMap.new
             const isActive = (selected || enquiries[0]?.id) === e.id
@@ -445,8 +445,16 @@ function MyEnquiries({ enquiries, loading, onRefresh, userData, authUser }) {
         {currentEnquiry && (
           <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #f1f5f9", overflow: "hidden", display: "flex", flexDirection: "column", minHeight: 480 }}>
             <div style={{ padding: "16px 20px", borderBottom: "1px solid #f8fafc", flexShrink: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 800, color: "#0d1f2d", marginBottom: 4 }}>{currentEnquiry.listings?.title || "Property"}</div>
-              <div style={{ fontSize: 12, color: "#94a3b8" }}>{currentEnquiry.listings?.city}, {currentEnquiry.listings?.state}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                <button onClick={() => setSelected(null)} className="back-btn-mobile"
+                  style={{ width: 32, height: 32, borderRadius: 8, background: "#f1f5f9", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: "#0d1f2d" }}>{currentEnquiry.listings?.title || "Property"}</div>
+                  <div style={{ fontSize: 12, color: "#94a3b8" }}>{currentEnquiry.listings?.city}, {currentEnquiry.listings?.state}</div>
+                </div>
+              </div>
             </div>
             <div style={{ flex: 1, padding: "16px 20px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, minHeight: 0 }}>
               {loadingMsgs ? <div style={{ display: "flex", justifyContent: "center" }}><Loader size={20} color={T} style={{ animation: "spin 1s linear infinite" }} /></div>
@@ -1190,8 +1198,16 @@ export default function UserDashboard() {
 
   const fetchData = async () => {
     setLoading(true)
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
-    if (authError || !authUser) { router.push("/auth"); return }
+    // Try getUser first, fall back to getSession for mobile browsers
+    let authUser = null
+    const { data: { user: u }, error: authError } = await supabase.auth.getUser()
+    if (u) {
+      authUser = u
+    } else {
+      const { data: { session } } = await supabase.auth.getSession()
+      authUser = session?.user || null
+    }
+    if (!authUser) { router.push("/auth"); return }
     setAuthUser(authUser)
     const { data: userData } = await supabase.from("users").select("*").eq("id", authUser.id).single()
     setUser(userData)
@@ -1227,10 +1243,22 @@ export default function UserDashboard() {
   }
 
   useEffect(() => {
+    // Use onAuthStateChange so mobile browsers get session before redirect check
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT" || (!session && event !== "INITIAL_SESSION")) {
+        router.push("/auth")
+      } else if (session) {
+        fetchData()
+      }
+    })
+    // Also call fetchData directly in case session already loaded
     fetchData()
     const fn = () => { if (window.innerWidth >= 1024) setSidebarOpen(false) }
     window.addEventListener("resize", fn)
-    return () => window.removeEventListener("resize", fn)
+    return () => {
+      subscription?.unsubscribe()
+      window.removeEventListener("resize", fn)
+    }
   }, [])
 
   const unreadNotifs = notifications.filter(n => !n.is_read).length
@@ -1305,7 +1333,12 @@ export default function UserDashboard() {
         @keyframes spin   { to{transform:rotate(360deg)} }
         .sidebar-close { display: flex !important; }
         .enquiry-layout { grid-template-columns: 1fr !important; }
+        /* Mobile chat: hide list when chat open, show back button */
+        .hide-on-mobile { display: none !important; }
+        .back-btn-mobile { display: flex !important; }
         @media (min-width: 768px) {
+          .hide-on-mobile { display: block !important; }
+          .back-btn-mobile { display: none !important; }
           .main-container { padding: 24px 24px 48px !important; }
           .enquiry-layout { grid-template-columns: 260px 1fr !important; }
         }

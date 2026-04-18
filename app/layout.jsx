@@ -77,9 +77,13 @@ export const metadata = {
     canonical: BASE_URL,
   },
   icons: {
-    icon:      "/icon.png",
-    shortcut:  "/icon.png",
-    apple:     "/icon.png",
+    icon: [
+      { url: "/findwithhabilogo.png", sizes: "32x32",   type: "image/png" },
+      { url: "/findwithhabilogo.png", sizes: "192x192", type: "image/png" },
+      { url: "/findwithhabilogo.png", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: "/findwithhabilogo.png",
+    apple:    "/findwithhabilogo.png",
   },
   manifest: "/site.webmanifest",
 }

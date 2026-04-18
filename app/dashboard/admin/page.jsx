@@ -1523,10 +1523,20 @@ export default function AdminDashboard() {
   }
 
   useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT" || (!session && event !== "INITIAL_SESSION")) {
+        router.push("/auth")
+      } else if (session) {
+        fetchData()
+      }
+    })
     fetchData()
     const fn = () => { if (window.innerWidth >= 1024) setSidebarOpen(false) }
     window.addEventListener("resize", fn)
-    return () => window.removeEventListener("resize", fn)
+    return () => {
+      subscription?.unsubscribe()
+      window.removeEventListener("resize", fn)
+    }
   }, [])
 
   // Poll every 30 seconds for new reports, support tickets, verifications
