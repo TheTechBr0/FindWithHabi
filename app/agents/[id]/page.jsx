@@ -581,23 +581,40 @@ export default function AgentProfilePage() {
               </div>
             </div>
 
-            {/* Trust badge */}
-            <div style={{ background: DARK, borderRadius: 18, padding: "20px", border: "1px solid rgba(255,255,255,0.06)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                <Shield size={18} color={T} />
-                <span style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>FindWithHabi Guarantee</span>
-              </div>
-              {[
-                "All agents verified by our team",
-                "Listings checked for authenticity",
-                "Safe and secure enquiries",
-              ].map((text, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: i < 2 ? 8 : 0 }}>
-                  <CheckCircle size={13} color="#10b981" />
-                  <span style={{ fontSize: 12, color: "rgba(255,255,255,0.55)" }}>{text}</span>
+            {/* Verified trust badge OR unverified warning */}
+            {agent?.is_verified ? (
+              <div style={{ background: DARK, borderRadius: 18, padding: "20px", border: "1px solid rgba(255,255,255,0.06)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                  <Shield size={18} color={T} />
+                  <span style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>FindWithHabi Guarantee</span>
                 </div>
-              ))}
-            </div>
+                {[
+                  "Verified by our admin team",
+                  "Listings checked for authenticity",
+                  "Safe and secure enquiries",
+                ].map((text, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: i < 2 ? 8 : 0 }}>
+                    <CheckCircle size={13} color="#10b981" />
+                    <span style={{ fontSize: 12, color: "rgba(255,255,255,0.55)" }}>{text}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ borderRadius: 18, padding: "20px", background: "#fef3c7", border: "2px solid #f59e0b" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                  <span style={{ fontSize: 22 }}>⚠️</span>
+                  <span style={{ fontSize: 14, fontWeight: 900, color: "#92400e" }}>Unverified Agent</span>
+                </div>
+                <p style={{ margin: "0 0 12px", fontSize: 13, color: "#78350f", lineHeight: 1.6 }}>
+                  This agent has <strong>not been verified</strong> by FindWithHabi. Their identity and credentials have not been confirmed by our team.
+                </p>
+                <div style={{ background: "#fff7ed", borderRadius: 10, padding: "10px 14px", border: "1px solid #fed7aa" }}>
+                  <p style={{ margin: 0, fontSize: 12, color: "#9a3412", fontWeight: 700, lineHeight: 1.6 }}>
+                    ⚠️ Proceeding with an unverified agent is entirely at your own risk. Always meet in a public place, never send money without seeing the property, and verify all documents before signing anything.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

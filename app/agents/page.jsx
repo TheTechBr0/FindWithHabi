@@ -547,7 +547,7 @@ export default function AgentsPage() {
             {otherAgents.length > 0 && (
               <div>
                 {verifiedAgents.length > 0 && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
                     <div style={{ width: 28, height: 28, borderRadius: 9, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <Users size={14} color="#64748b" />
                     </div>
@@ -556,6 +556,16 @@ export default function AgentsPage() {
                     </span>
                   </div>
                 )}
+                {/* Unverified agents warning notice */}
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 14, padding: "16px 20px", borderRadius: 16, background: "#fef3c7", border: "1.5px solid #f59e0b", marginBottom: 20 }}>
+                  <span style={{ fontSize: 22, flexShrink: 0 }}>⚠️</span>
+                  <div>
+                    <p style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 800, color: "#92400e" }}>Unverified Agents — Proceed with Caution</p>
+                    <p style={{ margin: 0, fontSize: 13, color: "#78350f", lineHeight: 1.6 }}>
+                      The agents listed below have <strong>not been verified</strong> by FindWithHabi. Their identities and credentials have not been confirmed by our team. Any dealings with unverified agents are <strong>entirely at your own risk</strong>. We strongly recommend working only with <span style={{ color: "#0097B2", fontWeight: 700 }}>verified agents</span> above.
+                    </p>
+                  </div>
+                </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,280px),1fr))", gap: 16 }}>
                   {otherAgents.map((agent, i) => <AgentCard key={agent.id} agent={agent} index={i} onContact={openContact} />)}
                 </div>
