@@ -7,7 +7,7 @@ import {
   Search, MapPin, Home, Building2, Key, ArrowRight, ArrowUpRight,
   Star, Shield, Zap, Heart, Phone,
   Globe, MessageCircle, Share2, TrendingUp, CheckCircle,
-  X, Sparkles, Award, Clock, Menu, ChevronDown, BadgeCheck, Bed, Bath,Eye,Maximize2,
+  X, Sparkles, Award, Clock, Menu, ChevronDown, BadgeCheck, Bed, Bath,
 } from "lucide-react"
 
 const T      = "#0097B2"
@@ -738,14 +738,14 @@ export default function LandingPage() {
 
     // Fetch real data
     const fetchData = async () => {
-      // Featured + active listings (featured first)
+      // Featured listings only for featured section
       const { data: listingsData } = await supabase
         .from("listings")
         .select("*")
         .eq("status", "active")
         .eq("is_flagged", false)
-        .order("is_featured", { ascending: false })
-        .order("created_at",  { ascending: false })
+        .eq("is_featured", true)
+        .order("created_at", { ascending: false })
         .limit(12)
 
       if (listingsData && listingsData.length > 0) {

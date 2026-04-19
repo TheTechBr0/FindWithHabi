@@ -322,10 +322,12 @@ function PropertyCard({ listing, saved, onSave, index }) {
       <div style={{ padding:"15px 17px",flex:1,display:"flex",flexDirection:"column" }}>
         <div style={{ display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:6,marginBottom:5 }}>
           <h3 style={{ margin:0,fontSize:14,fontWeight:800,color:"#0d1f2d",letterSpacing:"-0.02em",lineHeight:1.3 }}>{listing.title}</h3>
-          <div style={{ display:"flex",alignItems:"center",gap:3,flexShrink:0 }}>
-            <Star size={11} color="#f59e0b" fill="#f59e0b" />
-            <span style={{ fontSize:12,fontWeight:700,color:"#64748b" }}>4.8</span>
-          </div>
+          {listing.agents?.rating > 0 && (
+            <div style={{ display:"flex",alignItems:"center",gap:3,flexShrink:0 }}>
+              <Star size={11} color="#f59e0b" fill="#f59e0b" />
+              <span style={{ fontSize:12,fontWeight:700,color:"#64748b" }}>{Number(listing.agents.rating).toFixed(1)}</span>
+            </div>
+          )}
         </div>
         <div style={{ display:"flex",alignItems:"center",gap:4,marginBottom:10 }}>
           <MapPin size={11} color={T} />

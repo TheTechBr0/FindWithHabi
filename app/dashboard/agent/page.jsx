@@ -1094,7 +1094,7 @@ function Performance({ agent, user, listings }) {
           { label: "Active Listings", value: activeListings, color: T, icon: Building2 },
           { label: "Total Views", value: totalViews.toLocaleString(), color: "#f59e0b", icon: Eye },
           { label: "Total Listings", value: listings.length, color: "#8b5cf6", icon: Activity },
-          { label: "Verified", value: agent?.is_verified ? "Yes" : "Pending", color: "#10b981", icon: BadgeCheck },
+          { label: "Verified", value: agent?.is_verified ? "Yes ✓" : "Not Verified", color: agent?.is_verified ? "#10b981" : "#94a3b8", icon: BadgeCheck },
         ].map(({ label, value, color, icon: Icon }, i) => (
           <div key={i} style={{ background: "#fff", borderRadius: 18, padding: "20px", border: "1px solid #f1f5f9", animation: "fadeUp 0.4s ease " + (i * 70) + "ms both" }}>
             <div style={{ width: 40, height: 40, borderRadius: 12, background: color + "18", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}><Icon size={18} color={color} /></div>

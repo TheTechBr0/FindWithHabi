@@ -599,6 +599,15 @@ function AgentCard({ agent, listing, saved, onSave, isOwner }) {
             {agent?.is_verified && <BadgeCheck size={15} color="#10b981" />}
           </div>
           <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 1 }}>Property Agent</div>
+          {/* Unverified agent warning */}
+          {agent && !agent.is_verified && (
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 10, padding: "10px 12px", borderRadius: 10, background: "#f59e0b10", border: "1px solid #f59e0b30" }}>
+              <span style={{ fontSize: 14, flexShrink: 0 }}>⚠️</span>
+              <p style={{ margin: 0, fontSize: 11, color: "#92400e", lineHeight: 1.5, fontWeight: 600 }}>
+                This agent is <strong>not verified</strong> by FindWithHabi. Proceed at your own risk. Always meet in person before making any payment.
+              </p>
+            </div>
+          )}
           {agent?.rating > 0 && (
             <div style={{ display: "flex", alignItems: "center", gap: 3, marginTop: 3 }}>
               <Star size={11} color="#f59e0b" fill="#f59e0b" />
