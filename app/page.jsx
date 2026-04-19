@@ -7,7 +7,7 @@ import {
   Search, MapPin, Home, Building2, Key, ArrowRight, ArrowUpRight,
   Star, Shield, Zap, Heart, Phone,
   Globe, MessageCircle, Share2, TrendingUp, CheckCircle,
-  X, Sparkles, Award, Clock, Menu, ChevronDown, BadgeCheck, Bed, Bath,
+  X, Sparkles, Award, Clock, Menu, ChevronDown, BadgeCheck, Bed, Bath,Eye,Maximize2,
 } from "lucide-react"
 
 const T      = "#0097B2"

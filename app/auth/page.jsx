@@ -348,7 +348,10 @@ function SignupForm({ onSwitch }) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: name, phone, role } }
+      options: {
+        data: { full_name: name, phone, role },
+        emailRedirectTo: "https://find-with-habi.vercel.app/auth",
+      }
     })
 
     if (error) {
