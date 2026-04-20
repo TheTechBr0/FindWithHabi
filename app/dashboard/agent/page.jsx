@@ -205,11 +205,31 @@ function Topbar({ title, onMenuOpen, userId, onNavToEnquiries, onNav }) {
 }
 
 function LoadingCard() {
+  const sh = { background: "linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s infinite", borderRadius: 8 }
   return (
-    <div style={{ background: "#fff", borderRadius: 20, padding: "24px", border: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", minHeight: 200 }}>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-        <Loader size={28} color={T} style={{ animation: "spin 1s linear infinite" }} />
-        <span style={{ fontSize: 13, color: "#94a3b8" }}>Loading…</span>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* Stat cards skeleton */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,200px),1fr))", gap: 16 }}>
+        {[...Array(4)].map((_,i) => (
+          <div key={i} style={{ background: "#fff", borderRadius: 20, padding: "22px 24px", border: "1px solid #f1f5f9" }}>
+            <div style={{ ...sh, width: 44, height: 44, borderRadius: 14, marginBottom: 14 }} />
+            <div style={{ ...sh, height: 28, width: "50%", marginBottom: 8 }} />
+            <div style={{ ...sh, height: 13, width: "70%" }} />
+          </div>
+        ))}
+      </div>
+      {/* Listings skeleton */}
+      <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #f1f5f9", overflow: "hidden" }}>
+        {[...Array(3)].map((_,i) => (
+          <div key={i} style={{ display: "flex", gap: 14, padding: "16px 20px", borderBottom: "1px solid #f8fafc" }}>
+            <div style={{ ...sh, width: 120, height: 90, borderRadius: 12, flexShrink: 0 }} />
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10, justifyContent: "center" }}>
+              <div style={{ ...sh, height: 15, width: "60%" }} />
+              <div style={{ ...sh, height: 12, width: "40%" }} />
+              <div style={{ ...sh, height: 20, width: "30%" }} />
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )
@@ -722,7 +742,7 @@ function ListingPreviewModal({ listing, onClose }) {
           <div><div style={{ fontSize: 13, fontWeight: 700, color: "#0d1f2d" }}>This is how buyers see your listing</div><div style={{ fontSize: 11, color: "#64748b" }}>Contact forms are hidden for you as the listing owner</div></div>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
-          <a href={"/listings/" + listing.id} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 12, background: "#f8fafc", border: "1.5px solid #e2e8f0", color: "#0d1f2d", fontSize: 13, fontWeight: 700, textDecoration: "none" }}><Eye size={15} /> Open Live Page</a>
+          <a href={"/listings/" + listing.id} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 12, background: "#f8fafc", border: "1.5px solid #e2e8f0", color: "#0d1f2d", fontSize: 13, fontWeight: 700, textDecoration: "none" }}><Eye size={15} /> Open Live Page</a>
           <button onClick={onClose} style={{ flex: 1, padding: "12px", borderRadius: 12, background: T, border: "none", color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>Done</button>
         </div>
       </div>
@@ -1265,7 +1285,7 @@ function AgentBrowseTab() {
       ) : activeTab === "listings" ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,280px),1fr))", gap: 16 }}>
           {filteredListings.map((l, i) => (
-            <a key={l.id} href={"/listings/" + l.id} target="_blank" rel="noopener noreferrer"
+            <a key={l.id} href={"/listings/" + l.id}
               style={{ textDecoration: "none", display: "block", background: "#fff", borderRadius: 18, overflow: "hidden", border: "1px solid #f1f5f9", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", transition: "transform 0.2s, box-shadow 0.2s", animation: "fadeUp 0.4s ease " + (i * 40) + "ms both" }}
               onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.1)" }}
               onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.05)" }}>
@@ -1556,6 +1576,7 @@ export default function AgentDashboard() {
         :focus-visible { outline: 2px solid ${T}; outline-offset: 3px; border-radius: 4px; }
         @keyframes fadeUp  { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
         @keyframes slideUp { from{opacity:0;transform:translateY(40px)} to{opacity:1;transform:none} }
+        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
         @keyframes spin    { to{transform:rotate(360deg)} }
         @keyframes popIn   { from{transform:scale(0.5);opacity:0} to{transform:scale(1);opacity:1} }
         /* Mobile base — single column, full width */

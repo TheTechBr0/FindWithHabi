@@ -263,6 +263,25 @@ function ContactModal({ agent, onClose, authUser, userData }) {
   )
 }
 
+// ─── Skeleton Loaders ─────────────────────────────────────────────────────────
+function AgentSkeleton() {
+  const shimmer = { background: "linear-gradient(90deg,#f1f5f9 25%,#e8edf2 50%,#f1f5f9 75%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s infinite", borderRadius: 8 }
+  return (
+    <div style={{ background: "#fff", borderRadius: 24, overflow: "hidden", border: "1px solid #f1f5f9", padding: "24px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
+        <div style={{ ...shimmer, width: 68, height: 68, borderRadius: "50%", flexShrink: 0 }} />
+        <div style={{ flex: 1 }}>
+          <div style={{ ...shimmer, height: 16, width: "60%", marginBottom: 8 }} />
+          <div style={{ ...shimmer, height: 12, width: "40%" }} />
+        </div>
+      </div>
+      <div style={{ ...shimmer, height: 12, width: "80%", marginBottom: 8 }} />
+      <div style={{ ...shimmer, height: 12, width: "50%", marginBottom: 20 }} />
+      <div style={{ ...shimmer, height: 40, borderRadius: 10 }} />
+    </div>
+  )
+}
+
 // ─── Agent Card ───────────────────────────────────────────────────────────────
 function AgentCard({ agent, index, onContact }) {
   const agentName   = agent.users?.full_name  || "Agent"
@@ -377,6 +396,22 @@ export default function AgentsPage() {
     })
 
     const fetchAgents = async () => {
+      // Stale-while-revalidate: show cache instantly, refresh in background
+      const CACHE_KEY = "fwh_agents_v1"
+      const CACHE_TTL = 3 * 60 * 1000 // 3 minutes
+      try {
+        const cached = sessionStorage.getItem(CACHE_KEY)
+        if (cached) {
+          const { data: cachedData, ts } = JSON.parse(cached)
+          // Always show cached data instantly
+          if (cachedData.agents) setAgents(cachedData.agents)
+          if (cachedData.stats)  setStats(cachedData.stats)
+          setLoading(false)
+          // If fresh skip network, otherwise refresh silently
+          if (Date.now() - ts < CACHE_TTL) return
+        }
+      } catch(e) {}
+
       const { data } = await supabase
         .from("agents")
         .select("*, users(full_name, avatar_url, phone, city, state, created_at)")
@@ -395,7 +430,10 @@ export default function AgentsPage() {
         const rated     = formatted.filter(a => (a.rating || 0) > 0)
         const avgRating = rated.length > 0
           ? (rated.reduce((s, a) => s + Number(a.rating), 0) / rated.length).toFixed(1) : 0
-        setStats({ total: formatted.length, verified, avgRating })
+        const stats = { total: formatted.length, verified, avgRating }
+        setStats(stats)
+        // Save to cache
+        try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: { agents: formatted, stats }, ts: Date.now() })) } catch(e) {}
       }
       setLoading(false)
     }
@@ -511,9 +549,8 @@ export default function AgentsPage() {
       {/* Agents grid */}
       <div className="container" style={{ maxWidth: 1400, margin: "0 auto", padding: "32px 16px 64px" }}>
         {loading ? (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 20px", gap: 16 }}>
-            <Loader size={36} color={T} style={{ animation: "spin 1s linear infinite" }} />
-            <span style={{ fontSize: 14, color: "#94a3b8" }}>Loading agents…</span>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,280px),1fr))", gap: 16 }}>
+            {[...Array(6)].map((_,i) => <AgentSkeleton key={i} />)}
           </div>
         ) : sorted.length === 0 ? (
           <div style={{ textAlign: "center", padding: "80px 20px" }}>
@@ -615,6 +652,7 @@ export default function AgentsPage() {
         @keyframes dropIn  { from{opacity:0;transform:translateY(-6px) scale(0.98)} to{opacity:1;transform:none} }
         @keyframes slideUp { from{transform:translateY(100%)} to{transform:none} }
         @keyframes spin    { to{transform:rotate(360deg)} }
+        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
         @keyframes popIn   { from{transform:scale(0.5);opacity:0} to{transform:scale(1);opacity:1} }
         .hamburger-wrap { display: flex !important; }
         @media (min-width: 768px) {

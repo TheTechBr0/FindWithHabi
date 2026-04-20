@@ -475,7 +475,7 @@ function ListingsTab({ listings, loading, onRefresh }) {
             </div>
 
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <a href={"/listings/" + selected.id} target="_blank" rel="noopener"
+              <a href={"/listings/" + selected.id}
                 style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 16px", borderRadius: 12, background: "#f8fafc", border: "1px solid #e2e8f0", color: "#64748b", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
                 <Eye size={14} /> View Live
               </a>

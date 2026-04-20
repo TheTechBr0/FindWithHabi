@@ -35,6 +35,35 @@ const inputBase = {
   transition: "border-color 0.2s, background 0.2s",
 }
 
+// ─── Skeleton Components ──────────────────────────────────────────────────────
+function CardSkeleton() {
+  const sh = { background: "linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s infinite", borderRadius: 8 }
+  return (
+    <div style={{ background: "#fff", borderRadius: 18, overflow: "hidden", border: "1px solid #f1f5f9" }}>
+      <div style={{ ...sh, height: 175, borderRadius: 0 }} />
+      <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ ...sh, height: 14, width: "70%" }} />
+        <div style={{ ...sh, height: 11, width: "45%" }} />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+          <div style={{ ...sh, height: 18, width: "35%" }} />
+          <div style={{ ...sh, height: 32, width: "30%", borderRadius: 10 }} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function StatSkeleton() {
+  const sh = { background: "linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s infinite", borderRadius: 8 }
+  return (
+    <div style={{ background: "#fff", borderRadius: 20, padding: "22px 24px", border: "1px solid #f1f5f9" }}>
+      <div style={{ ...sh, width: 44, height: 44, borderRadius: 14, marginBottom: 14 }} />
+      <div style={{ ...sh, height: 28, width: "50%", marginBottom: 8 }} />
+      <div style={{ ...sh, height: 13, width: "65%" }} />
+    </div>
+  )
+}
+
 function Sidebar({ active, onNav, open, onClose, user, savedCount, enquiryCount, unreadEnquiries, unreadNotifs }) {
   const router = useRouter()
   const handleLogout = async () => { await supabase.auth.signOut(); router.push("/auth") }
@@ -609,7 +638,7 @@ function BrowseAgents() {
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <a href={"/agents/" + a.id} target="_blank" rel="noopener noreferrer"
+                  <a href={"/agents/" + a.id}
                     style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px", borderRadius: 10, background: T, color: "#fff", textDecoration: "none", fontSize: 13, fontWeight: 800 }}>
                     View Profile
                   </a>
@@ -681,6 +710,26 @@ function BrowseListings({ onSave }) {
       const user = session?.user || null
       setAuthUser(user)
 
+      // Serve from cache for instant display
+      const CACHE_KEY = "fwh_browse_v1"
+      const CACHE_TTL = 2 * 60 * 1000 // 2 minutes
+      try {
+        const cached = sessionStorage.getItem(CACHE_KEY)
+        if (cached) {
+          const { data: c, ts } = JSON.parse(cached)
+          if (Date.now() - ts < CACHE_TTL) {
+            setListings(c)
+            setLoading(false)
+            // Still load saved state for this user
+            if (user) {
+              const { data: savedData } = await supabase.from("saved_listings").select("listing_id").eq("user_id", user.id)
+              if (savedData) setSavedIds(savedData.map(s => s.listing_id))
+            }
+            return
+          }
+        }
+      } catch(e) {}
+
       // Fetch listings - get more so we can split into featured/popular/all
       const { data: listingsData } = await supabase.from("listings")
         .select("*, agents(rating)")
@@ -695,6 +744,8 @@ function BrowseListings({ onSave }) {
           return { ...l, cover_image: imgs.find(i => i.is_cover)?.url || imgs[0]?.url || null }
         })
         setListings(formatted)
+        // Cache for instant repeat navigation
+        try { sessionStorage.setItem("fwh_browse_v1", JSON.stringify({ data: formatted, ts: Date.now() })) } catch(e) {}
         if (user) {
           const { data: savedData } = await supabase.from("saved_listings").select("listing_id").eq("user_id", user.id)
           if (savedData) setSavedIds(savedData.map(s => s.listing_id))
@@ -732,7 +783,17 @@ function BrowseListings({ onSave }) {
     .slice(0, 8)
   const showCurated = !search && filter === "All"
 
-  if (loading) return <LoadingCard />
+  if (loading) return (
+    <div>
+      <div style={{ height: 48, background: "linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s infinite", borderRadius: 12, marginBottom: 16 }} />
+      <div style={{ display: "flex", gap: 8, marginBottom: 24, overflowX: "auto" }}>
+        {[...Array(5)].map((_,i) => <div key={i} style={{ flexShrink: 0, width: 70, height: 34, borderRadius: 9, background: "linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s infinite" }} />)}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,260px),1fr))", gap: 16 }}>
+        {[...Array(6)].map((_,i) => <CardSkeleton key={i} />)}
+      </div>
+    </div>
+  )
 
   return (
     <div>
@@ -1330,8 +1391,9 @@ export default function UserDashboard() {
         input::placeholder, textarea::placeholder { color: #94a3b8; }
         input:focus, textarea:focus { outline: none; }
         a, button { -webkit-tap-highlight-color: transparent; }
-        @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
-        @keyframes spin   { to{transform:rotate(360deg)} }
+        @keyframes fadeUp  { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
+        @keyframes spin    { to{transform:rotate(360deg)} }
+        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
         .sidebar-close { display: flex !important; }
         /* Mobile base */
         .enquiry-layout { grid-template-columns: 1fr !important; }

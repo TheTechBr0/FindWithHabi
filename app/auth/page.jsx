@@ -79,6 +79,7 @@ function Field({ label, type = "text", icon: Icon, value, onChange, placeholder,
         background: "rgba(255,255,255,0.05)",
         border: `1.5px solid ${error ? "#ef4444" : "rgba(255,255,255,0.1)"}`,
         borderRadius: 14, transition: "border-color 0.2s",
+        width: "100%", minWidth: 0, boxSizing: "border-box",
       }}
         onFocusCapture={e => e.currentTarget.style.borderColor = error ? "#ef4444" : T}
         onBlurCapture={e => e.currentTarget.style.borderColor = error ? "#ef4444" : "rgba(255,255,255,0.1)"}
@@ -96,12 +97,12 @@ function Field({ label, type = "text", icon: Icon, value, onChange, placeholder,
           aria-label={label}
           aria-invalid={!!error}
           style={{
-            flex: 1, padding: "13px 14px",
+            flex: 1, minWidth: 0, width: "100%",
+            padding: "13px 14px",
             background: "transparent", border: "none", outline: "none",
-            fontSize: 15, color: "#fff",
+            fontSize: 16, color: "#fff",
             fontFamily: "'DM Sans', system-ui, sans-serif",
-            // Prevent iOS zoom — keep at 16px
-            fontSize: 16,
+            boxSizing: "border-box",
           }}
         />
         {rightEl && <div style={{ paddingRight: 14, flexShrink: 0 }}>{rightEl}</div>}
@@ -150,7 +151,7 @@ function RoleCard({ role, selected, onSelect }) {
       onClick={() => onSelect(role.key)}
       aria-pressed={selected}
       style={{
-        flex: 1, padding: "18px 14px", borderRadius: 16, cursor: "pointer",
+        flex: 1, minWidth: 0, padding: "14px 12px", borderRadius: 16, cursor: "pointer",
         background: selected ? `${role.color}14` : "rgba(255,255,255,0.03)",
         border: `2px solid ${selected ? role.color : "rgba(255,255,255,0.08)"}`,
         textAlign: "left", transition: "all 0.25s",
@@ -262,7 +263,7 @@ function LoginForm({ onSwitch, onForgot }) {
   if (done) return <SuccessState label="Logged in!" sub="Redirecting to your dashboard…" />
 
   return (
-    <form onSubmit={handleSubmit} noValidate style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+    <form onSubmit={handleSubmit} noValidate style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0, width: "100%" }}>
       {authError && (
         <div style={{ padding: "12px 16px", borderRadius: 12, background: "#ef444420", border: "1px solid #ef444440", color: "#ef4444", fontSize: 13, fontWeight: 600 }}>
           {authError}
@@ -412,7 +413,7 @@ function SignupForm({ onSwitch }) {
   if (done) return <SuccessState label="Account created!" sub="Welcome to FindWithHabi. Redirecting…" />
 
   return (
-    <form onSubmit={handleSubmit} noValidate style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+    <form onSubmit={handleSubmit} noValidate style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0, width: "100%" }}>
       {authError && (
         <div style={{ padding: "12px 16px", borderRadius: 12, background: "#ef444420", border: "1px solid #ef444440", color: "#ef4444", fontSize: 13, fontWeight: 600 }}>
           {authError}
@@ -422,7 +423,7 @@ function SignupForm({ onSwitch }) {
       {/* Role picker */}
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.6)", letterSpacing: "0.04em", textTransform: "uppercase" }}>I am a</span>
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: 10, minWidth: 0 }}>
           {ROLES.map(r => (
             <RoleCard key={r.key} role={r} selected={role === r.key} onSelect={setRole} />
           ))}
@@ -542,6 +543,7 @@ function GoogleBtn() {
         display: "flex", alignItems: "center",
         justifyContent: "center", gap: 10, transition: "all 0.2s",
         minHeight: 48, opacity: loading ? 0.7 : 1,
+        boxSizing: "border-box",
       }}
       onMouseEnter={e => { if (!loading) e.currentTarget.style.background = "rgba(255,255,255,0.09)" }}
       onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)" }}
@@ -626,7 +628,7 @@ function ForgotPasswordForm({ onBack }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+    <form onSubmit={handleSubmit} noValidate style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0, width: "100%" }}>
       <div style={{ textAlign: "center", marginBottom: 8 }}>
         <h3 style={{ margin: "0 0 8px", fontSize: 20, fontWeight: 900, color: "#fff" }}>Forgot Password?</h3>
         <p style={{ margin: 0, fontSize: 14, color: "rgba(255,255,255,0.5)" }}>Enter your email and we will send you a reset link.</p>
@@ -699,7 +701,7 @@ export default function AuthPage() {
         flex: 1, display: "flex", alignItems: "stretch",
         position: "relative", zIndex: 10,
         maxWidth: 1100, margin: "0 auto", width: "100%",
-        padding: "32px 16px 48px",
+        padding: "24px 12px 48px",
         gap: 0,
       }}>
 
@@ -757,7 +759,7 @@ export default function AuthPage() {
         {/* ── Right panel — form ── */}
         <div className="auth-right" style={{
           flex: 1, display: "flex", flexDirection: "column", justifyContent: "center",
-          paddingLeft: 0, paddingRight: 0, maxWidth: 480, width: "100%", margin: "0 auto",
+          paddingLeft: 0, paddingRight: 0, maxWidth: 480, width: "100%", minWidth: 0, margin: "0 auto",
           opacity: visible ? 1 : 0,
           transform: visible ? "none" : "translateY(24px)",
           transition: "opacity 0.8s ease 0.1s, transform 0.8s ease 0.1s",
@@ -775,7 +777,7 @@ export default function AuthPage() {
             background: "rgba(255,255,255,0.04)",
             border: "1px solid rgba(255,255,255,0.08)",
             borderRadius: 24,
-            padding: "clamp(24px, 4vw, 40px)",
+            padding: "clamp(18px, 4vw, 40px) clamp(16px, 4vw, 40px)",
             backdropFilter: "blur(20px)",
             WebkitBackdropFilter: "blur(20px)",
             boxShadow: "0 32px 80px rgba(0,0,0,0.4)",

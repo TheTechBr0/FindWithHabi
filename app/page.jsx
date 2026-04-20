@@ -175,7 +175,7 @@ function Hero({ stats }) {
           </h1>
 
           <p style={{ ...anim(200), fontSize: "clamp(14px,2vw,18px)", color: "rgba(255,255,255,0.55)", lineHeight: 1.7, marginBottom: 32, maxWidth: 520 }}>
-            Browse {stats.totalListings.toLocaleString()}+ verified properties across all 36 states. Buy, rent, or lease with total confidence.
+            Browse {stats.totalListings > 0 ? stats.totalListings.toLocaleString() + "+" : "thousands of"} verified properties across all 36 states. Buy, rent, or lease with total confidence.
           </p>
 
           {/* Search box */}
@@ -223,13 +223,17 @@ function Hero({ stats }) {
         {/* Real stats strip */}
         <div className="stats-strip" style={{ ...anim(500), display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 1, marginTop: 48, maxWidth: 600, background: "rgba(255,255,255,0.04)", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(255,255,255,0.07)", backdropFilter: "blur(20px)" }}>
           {[
-            { val: stats.totalListings > 0 ? stats.totalListings.toLocaleString() + "+" : "50K+", label: "Properties Listed" },
-            { val: stats.totalUsers    > 0 ? stats.totalUsers.toLocaleString()    + "+" : "12K+", label: "Registered Users"  },
-            { val: stats.totalAgents   > 0 ? stats.totalAgents.toLocaleString()   + "+" : "500+", label: "Verified Agents"   },
-            { val: "36",                                                                           label: "States Covered"   },
+            { val: stats.totalListings > 0 ? stats.totalListings.toLocaleString() + "+" : null, label: "Properties Listed" },
+            { val: stats.totalUsers    > 0 ? stats.totalUsers.toLocaleString()    + "+" : null, label: "Registered Users"  },
+            { val: stats.totalAgents   > 0 ? stats.totalAgents.toLocaleString()   + "+" : null, label: "Verified Agents"   },
+            { val: "36",                                                                         label: "States Covered"   },
           ].map(({ val, label }, i) => (
             <div key={i} style={{ padding: "16px 18px", textAlign: "center", borderRight: i % 2 === 0 ? "1px solid rgba(255,255,255,0.06)" : "none", borderBottom: i < 2 ? "1px solid rgba(255,255,255,0.06)" : "none" }}>
-              <div style={{ fontSize: "clamp(20px,4vw,28px)", fontWeight: 900, color: "#fff", letterSpacing: "-0.03em", lineHeight: 1 }}>{val}</div>
+              {val === null ? (
+                <div style={{ height: 28, width: 60, borderRadius: 8, background: "rgba(255,255,255,0.08)", animation: "shimmer 1.5s infinite", backgroundSize: "200% 100%", margin: "0 auto 4px" }} />
+              ) : (
+                <div style={{ fontSize: "clamp(20px,4vw,28px)", fontWeight: 900, color: "#fff", letterSpacing: "-0.03em", lineHeight: 1 }}>{val}</div>
+              )}
               <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 4, fontWeight: 600 }}>{label}</div>
             </div>
           ))}
@@ -244,112 +248,124 @@ function Hero({ stats }) {
   )
 }
 
-// ─── Featured Listings ────────────────────────────────────────────────────────
-function FeaturedListings({ listings }) {
-  const [ref, inView] = useInView()
-  const [active,  setActive]  = useState("All")
-  const [saved,   setSaved]   = useState([])
+// ─── Skeleton Cards ───────────────────────────────────────────────────────────
+function ListingSkeleton() {
+  const sh = { background: "linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s infinite", borderRadius: 8 }
+  return (
+    <div style={{ background: "#fff", borderRadius: 20, overflow: "hidden", border: "1px solid #f1f5f9", flexShrink: 0, width: "clamp(220px,58vw,265px)" }}>
+      <div style={{ ...sh, height: 180, borderRadius: 0 }} />
+      <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ ...sh, height: 14, width: "70%" }} />
+        <div style={{ ...sh, height: 11, width: "45%" }} />
+        <div style={{ ...sh, height: 16, width: "40%", marginTop: 4 }} />
+      </div>
+    </div>
+  )
+}
 
-  const filters  = ["All", "Buy", "Rent", "Lease", "Commercial"]
-  const filtered = active === "All" ? listings : listings.filter(l => l.listing_type?.toLowerCase() === active.toLowerCase())
+function AgentCardSkeleton() {
+  const sh = { background: "linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s infinite", borderRadius: 8 }
+  return (
+    <div style={{ background: "#fff", borderRadius: 20, padding: 20, border: "1px solid #f1f5f9", minWidth: 200 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+        <div style={{ ...sh, width: 52, height: 52, borderRadius: "50%", flexShrink: 0 }} />
+        <div style={{ flex: 1 }}>
+          <div style={{ ...sh, height: 13, width: "65%", marginBottom: 7 }} />
+          <div style={{ ...sh, height: 11, width: "45%" }} />
+        </div>
+      </div>
+      <div style={{ ...sh, height: 36, borderRadius: 10 }} />
+    </div>
+  )
+}
+
+// ─── Featured Listings ────────────────────────────────────────────────────────
+function FeaturedListings({ listings, loading }) {
+  const [ref, inView] = useInView()
+  const [saved, setSaved] = useState([])
 
   const toggleSave = useCallback((id) => {
     setSaved(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
   }, [])
 
-  const tagConfig = {
-    true:    { label: "✦ Featured", bg: "#f59e0b22", color: "#b45309" },
-    popular: { label: "🔥 Popular",  bg: "#ef444422", color: "#991b1b" },
-    default: { label: "New",         bg: "#10b98122", color: "#065f46" },
-  }
+  if (!loading && listings.length === 0) return null
 
   return (
-    <section ref={ref} className="section-listings" style={{ background: "#f8fafc", padding: "72px 0" }}>
+    <section ref={ref} className="section-listings" style={{ background: "#f8fafc", padding: "clamp(40px,8vw,72px) 0" }}>
       <div className="container" style={{ maxWidth: 1280, margin: "0 auto", padding: "0 16px" }}>
-        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "space-between", gap: 16, marginBottom: 28, opacity: inView ? 1 : 0, transform: inView ? "none" : "translateY(24px)", transition: "all 0.7s ease" }}>
+
+        {/* Header */}
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "space-between", gap: 16, marginBottom: 24, opacity: inView ? 1 : 0, transform: inView ? "none" : "translateY(24px)", transition: "all 0.7s ease" }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 800, color: T, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>Explore Properties</div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: "#f59e0b", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>✦ Hand-picked</div>
             <h2 style={{ margin: 0, fontSize: "clamp(22px,5vw,48px)", fontWeight: 900, color: "#0d1f2d", letterSpacing: "-0.03em", lineHeight: 1.1, fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-              {listings.some(l => l.is_featured) ? "Featured Listings" : "Latest Properties"}
+              Featured Listings
             </h2>
+            <p style={{ margin: "8px 0 0", fontSize: 14, color: "#94a3b8" }}>Hand-picked premium properties on FindWithHabi</p>
           </div>
           <Link href="/listings" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 20px", borderRadius: 50, border: `2px solid ${T}`, color: T, fontSize: 13, fontWeight: 800, textDecoration: "none", whiteSpace: "nowrap", minHeight: 44 }}>
             View All <ArrowRight size={14} />
           </Link>
         </div>
 
-        {/* Filter tabs */}
-        <div role="tablist" style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, marginBottom: 24, scrollbarWidth: "none" }}>
-          {filters.map(f => (
-            <button key={f} role="tab" aria-selected={active === f} onClick={() => setActive(f)}
-              style={{ padding: "9px 16px", borderRadius: 50, cursor: "pointer", fontSize: 13, fontWeight: 700, flexShrink: 0, border: `1.5px solid ${active === f ? T : "#e2e8f0"}`, background: active === f ? T : "#fff", color: active === f ? "#fff" : "#64748b", transition: "all 0.2s", minHeight: 40 }}>
-              {f}
-            </button>
-          ))}
-        </div>
-
-        {filtered.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "60px 20px", color: "#94a3b8" }}>
-            <Building2 size={48} color="#cbd5e1" style={{ marginBottom: 16 }} />
-            <p style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>No listings yet — be the first to add one!</p>
-          </div>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 300px), 1fr))", gap: 16 }}>
-            {filtered.slice(0, 6).map((l, i) => {
-              const tag = l.is_featured ? tagConfig.true : tagConfig.default
+        {/* Horizontal scroll strip */}
+        <div style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 12, scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}>
+          {loading ? (
+            [...Array(4)].map((_,i) => {
+              const sh = { background: "linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s infinite", borderRadius: 8 }
               return (
-                <article key={l.id} style={{ background: "#fff", borderRadius: 18, overflow: "hidden", border: "1px solid #f1f5f9", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", opacity: inView ? 1 : 0, transform: inView ? "none" : "translateY(32px)", transition: `opacity 0.6s ease ${i * 70}ms, transform 0.6s ease ${i * 70}ms` }}>
-                  <div style={{ position: "relative", height: 196, overflow: "hidden", background: "#f1f5f9" }}>
-                    {l.cover_image
-                      ? <img src={l.cover_image} alt={l.title} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Building2 size={40} color="#cbd5e1" /></div>}
-                    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 50%)" }} />
-                    <div style={{ position: "absolute", top: 12, left: 12 }}>
-                      <span style={{ background: tag.bg, color: tag.color, fontSize: 11, fontWeight: 800, padding: "4px 10px", borderRadius: 50, border: `1px solid ${tag.color}33` }}>{tag.label}</span>
-                    </div>
-                    <button onClick={() => toggleSave(l.id)} aria-pressed={saved.includes(l.id)}
-                      style={{ position: "absolute", top: 6, right: 6, width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,0.92)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                      <Heart size={15} color={saved.includes(l.id) ? "#ef4444" : "#94a3b8"} fill={saved.includes(l.id) ? "#ef4444" : "none"} />
-                    </button>
-                    <div style={{ position: "absolute", bottom: 12, left: 12 }}>
-                      <span style={{ background: T, color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 50 }}>{l.listing_type || "Buy"}</span>
-                    </div>
+                <div key={i} style={{ flexShrink: 0, width: "clamp(240px,70vw,300px)", background: "#fff", borderRadius: 20, overflow: "hidden", border: "1px solid #f1f5f9" }}>
+                  <div style={{ ...sh, height: 196, borderRadius: 0 }} />
+                  <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10 }}>
+                    <div style={{ ...sh, height: 15, width: "70%" }} />
+                    <div style={{ ...sh, height: 11, width: "45%" }} />
+                    <div style={{ ...sh, height: 18, width: "40%", marginTop: 4 }} />
                   </div>
-                  <div style={{ padding: "16px 18px" }}>
-                    <h3 style={{ margin: "0 0 3px", fontSize: 15, fontWeight: 800, color: "#0d1f2d", letterSpacing: "-0.02em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l.title}</h3>
-                    <div style={{ display: "flex", gap: 10, marginBottom: 8 }}>
-                      {l.beds  > 0 && <span style={{ fontSize: 12, color: "#64748b", display: "flex", alignItems: "center", gap: 4 }}><Bed  size={11} color="#94a3b8" />{l.beds} Bed</span>}
-                      {l.baths > 0 && <span style={{ fontSize: 12, color: "#64748b", display: "flex", alignItems: "center", gap: 4 }}><Bath size={11} color="#94a3b8" />{l.baths} Bath</span>}
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 14 }}>
-                      <MapPin size={12} color={T} />
-                      <span style={{ fontSize: 12, color: "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l.city}, {l.state}</span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <span style={{ fontSize: 19, fontWeight: 900, color: T, letterSpacing: "-0.02em" }}>{l.price_label}</span>
-                      <Link href={`/listings/${l.id}`}
-                        style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, background: "#f8fafc", border: "1px solid #e2e8f0", color: "#0d1f2d", fontSize: 13, fontWeight: 700, textDecoration: "none", minHeight: 40 }}>
-                        View <ArrowRight size={13} />
-                      </Link>
-                    </div>
-                  </div>
-                </article>
+                </div>
               )
-            })}
-          </div>
-        )}
-
-        <div style={{ textAlign: "center", marginTop: 44 }}>
-          <Link href="/listings" style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "13px 32px", borderRadius: 50, border: `2px solid ${T}`, color: T, fontSize: 15, fontWeight: 800, textDecoration: "none", minHeight: 48 }}>
-            Browse All Properties <ArrowRight size={16} />
-          </Link>
+            })
+          ) : listings.map((l, i) => (
+            <Link key={l.id} href={`/listings/${l.id}`}
+              style={{ textDecoration: "none", flexShrink: 0, width: "clamp(240px,70vw,300px)", borderRadius: 20, overflow: "hidden", background: "#fff", border: "2px solid #f59e0b30", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", display: "block", transition: "transform 0.2s, box-shadow 0.2s" }}
+              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 12px 32px rgba(0,0,0,0.12)" }}
+              onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.06)" }}>
+              <div style={{ position: "relative", height: 196, background: "#f1f5f9", overflow: "hidden" }}>
+                {l.cover_image
+                  ? <img src={l.cover_image} alt={l.title} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.3s ease" }}
+                      onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.05)" }}
+                      onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)" }} />
+                  : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Building2 size={36} color="#cbd5e1" /></div>}
+                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 50%)" }} />
+                <div style={{ position: "absolute", top: 10, left: 10 }}>
+                  <span style={{ background: "#f59e0b", color: "#fff", fontSize: 11, fontWeight: 800, padding: "4px 10px", borderRadius: 50 }}>✦ Featured</span>
+                </div>
+                <button onClick={e => { e.preventDefault(); toggleSave(l.id) }} style={{ position: "absolute", top: 8, right: 8, width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.92)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                  <Heart size={14} color={saved.includes(l.id) ? "#ef4444" : "#94a3b8"} fill={saved.includes(l.id) ? "#ef4444" : "none"} />
+                </button>
+                <div style={{ position: "absolute", bottom: 10, left: 10 }}>
+                  <span style={{ background: T, color: "#fff", fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 50 }}>{l.listing_type || "Buy"}</span>
+                </div>
+              </div>
+              <div style={{ padding: "14px 16px" }}>
+                <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 800, color: "#0d1f2d", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l.title}</h3>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
+                  <MapPin size={11} color={T} />
+                  <span style={{ fontSize: 12, color: "#64748b" }}>{l.city}, {l.state}</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 17, fontWeight: 900, color: T }}>{l.price_label}</span>
+                  <span style={{ fontSize: 11, color: "#94a3b8" }}>{(l.views || 0).toLocaleString()} views</span>
+                </div>
+              </div>
+            </Link>
+          ))}
         </div>
       </div>
     </section>
   )
 }
 
-// ─── Cities ───────────────────────────────────────────────────────────────────
+
 function CitiesSection() {
   const [ref, inView] = useInView()
   return (
@@ -424,7 +440,7 @@ function AgentsSection({ agents }) {
   const displayAgents = agents.length > 0 ? agents : []
 
   return (
-    <section ref={ref} id="agents" className="section-agents" style={{ background: "#f8fafc", padding: "72px 0" }}>
+    <section ref={ref} id="agents" className="section-agents" style={{ background: "#f8fafc", padding: "clamp(40px,8vw,72px) 0" }}>
       <div className="container" style={{ maxWidth: 1280, margin: "0 auto", padding: "0 16px" }}>
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "space-between", gap: 16, marginBottom: 44, opacity: inView ? 1 : 0, transform: inView ? "none" : "translateY(24px)", transition: "all 0.7s ease" }}>
           <div>
@@ -442,9 +458,9 @@ function AgentsSection({ agents }) {
             <p style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>No agents yet — be the first to join!</p>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,260px),1fr))", gap: 16 }}>
-            {displayAgents.slice(0, 3).map((agent, i) => (
-              <div key={agent.id} style={{ background: "#fff", borderRadius: 22, padding: "24px 20px", textAlign: "center", border: "1px solid " + (agent.is_verified ? T + "20" : "#f1f5f9"), boxShadow: agent.is_verified ? "0 4px 20px rgba(0,151,178,0.08)" : "0 2px 8px rgba(0,0,0,0.04)", opacity: inView ? 1 : 0, transform: inView ? "none" : "translateY(32px)", transition: `opacity 0.6s ease ${i * 100}ms, transform 0.6s ease ${i * 100}ms`, display: "flex", flexDirection: "column" }}>
+          <div style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
+            {displayAgents.slice(0, 4).map((agent, i) => (
+              <div key={agent.id} style={{ background: "#fff", borderRadius: 22, padding: "24px 20px", textAlign: "center", border: "1px solid " + (agent.is_verified ? T + "20" : "#f1f5f9"), boxShadow: agent.is_verified ? "0 4px 20px rgba(0,151,178,0.08)" : "0 2px 8px rgba(0,0,0,0.04)", opacity: inView ? 1 : 0, transform: inView ? "none" : "translateY(32px)", transition: `opacity 0.6s ease ${i * 100}ms, transform 0.6s ease ${i * 100}ms`, display: "flex", flexDirection: "column", flexShrink: 0, width: "clamp(240px,70vw,280px)" }}>
                 {agent.is_verified && <div style={{ height: 3, background: "linear-gradient(90deg," + T + ",#8b5cf6)", borderRadius: "3px 3px 0 0", margin: "-24px -20px 16px" }} />}
                 <div style={{ position: "relative", width: 72, height: 72, margin: "0 auto 12px", flexShrink: 0 }}>
                   {agent.users?.avatar_url
@@ -504,7 +520,7 @@ function PopularListings({ listings }) {
   if (listings.length === 0) return null
 
   return (
-    <section style={{ background: "#fff", padding: "72px 0", overflow: "hidden" }}>
+    <section style={{ background: "#fff", padding: "clamp(40px,8vw,72px) 0", overflow: "hidden" }}>
       <div className="container" style={{ maxWidth: 1280, margin: "0 auto", padding: "0 16px" }}>
 
         {/* Header */}
@@ -736,92 +752,92 @@ export default function LandingPage() {
     }
     window.addEventListener("scroll", onScroll, { passive: true })
 
-    // Fetch real data
+    // Fetch real data — with session cache for instant navigation
     const fetchData = async () => {
-      // Featured listings only for featured section
-      const { data: listingsData } = await supabase
-        .from("listings")
-        .select("*")
-        .eq("status", "active")
-        .eq("is_flagged", false)
-        .eq("is_featured", true)
-        .order("created_at", { ascending: false })
-        .limit(12)
+      const CACHE_KEY = "fwh_home_v1"
+      const CACHE_TTL = 3 * 60 * 1000 // 3 minutes
+      try {
+        const cached = sessionStorage.getItem(CACHE_KEY)
+        if (cached) {
+          const { data: c, ts } = JSON.parse(cached)
+          // Always restore from cache instantly
+          if (c.listings) setListings(c.listings)
+          if (c.agents)   setAgents(c.agents)
+          if (c.stats)    setStats(c.stats)
+          if (c.popular)  setPopularListings(c.popular)
+          // If fresh enough, skip network
+          if (Date.now() - ts < CACHE_TTL) return
+          // Otherwise refresh in background
+        }
+      } catch(e) {}
 
-      if (listingsData && listingsData.length > 0) {
+      // Fetch everything in parallel — much faster than sequential
+      const [
+        { data: listingsData },
+        { data: agentsData },
+        { data: popularData },
+        { count: totalListings },
+        { count: totalUsers },
+        { count: totalAgents },
+      ] = await Promise.all([
+        supabase.from("listings").select("*").eq("status", "active").eq("is_flagged", false).eq("is_featured", true).order("created_at", { ascending: false }).limit(12),
+        supabase.from("agents").select("*, users(full_name, avatar_url, phone, city, state)").order("is_verified", { ascending: false }).order("rating", { ascending: false }).limit(6),
+        supabase.from("listings").select("*, agents(rating)").eq("status", "active").eq("is_flagged", false).order("views", { ascending: false }).limit(30),
+        supabase.from("listings").select("*", { count: "exact", head: true }).eq("status", "active").eq("is_flagged", false),
+        supabase.from("users").select("*", { count: "exact", head: true }),
+        supabase.from("agents").select("*", { count: "exact", head: true }).eq("is_verified", true),
+      ])
+
+      // Process featured listings + images
+      let formatted = []
+      if (listingsData?.length > 0) {
         const ids = listingsData.map(l => l.id)
         const { data: imagesData } = await supabase.from("listing_images").select("listing_id, url, is_cover").in("listing_id", ids)
-        const formatted = listingsData.map(l => {
-          const imgs  = imagesData ? imagesData.filter(i => i.listing_id === l.id) : []
-          const cover = imgs.find(i => i.is_cover)?.url || imgs[0]?.url || null
-          return { ...l, cover_image: cover }
+        formatted = listingsData.map(l => {
+          const imgs = imagesData ? imagesData.filter(i => i.listing_id === l.id) : []
+          return { ...l, cover_image: imgs.find(i => i.is_cover)?.url || imgs[0]?.url || null }
         })
         setListings(formatted)
       }
 
-      // Top agents (verified first, then by rating)
-      const { data: agentsData } = await supabase
-        .from("agents")
-        .select("*, users(full_name, avatar_url, phone, city, state)")
-        .order("is_verified", { ascending: false })
-        .order("rating",      { ascending: false })
-        .limit(6)
-
-      if (agentsData) {
-        // Attach listing counts
+      // Process agents + listing counts
+      let agentsFormatted = []
+      if (agentsData?.length > 0) {
         const agentIds = agentsData.map(a => a.id)
-        const { data: listingCounts } = await supabase
-          .from("listings")
-          .select("agent_id")
-          .in("agent_id", agentIds)
-          .eq("status", "active")
-
+        const { data: listingCounts } = await supabase.from("listings").select("agent_id").in("agent_id", agentIds).eq("status", "active")
         const counts = {}
         if (listingCounts) listingCounts.forEach(l => { counts[l.agent_id] = (counts[l.agent_id] || 0) + 1 })
-        setAgents(agentsData.map(a => ({ ...a, listing_count: counts[a.id] || 0 })))
+        agentsFormatted = agentsData.map(a => ({ ...a, listing_count: counts[a.id] || 0 }))
+        setAgents(agentsFormatted)
       }
 
       // Stats
-      const [
-        { count: totalListings },
-        { count: totalUsers    },
-        { count: totalAgents   },
-      ] = await Promise.all([
-        supabase.from("listings").select("*", { count: "exact", head: true }).eq("status", "active"),
-        supabase.from("users").select("*",    { count: "exact", head: true }),
-        supabase.from("agents").select("*",   { count: "exact", head: true }),
-      ])
+      const newStats = { totalListings: totalListings || 0, totalUsers: totalUsers || 0, totalAgents: totalAgents || 0 }
+      setStats(newStats)
 
-      setStats({ totalListings: totalListings || 0, totalUsers: totalUsers || 0, totalAgents: totalAgents || 0 })
-
-      // Popular listings — combined views + rating score
-      const { data: popularData } = await supabase
-        .from("listings")
-        .select("*, agents(rating)")
-        .eq("status", "active")
-        .eq("is_flagged", false)
-        .order("views", { ascending: false })
-        .limit(30)
-
-      if (popularData && popularData.length > 0) {
-        // Score = views * 0.6 + (rating * 20) * 0.4  — blends popularity with quality
+      // Process popular listings
+      let popularFormatted = []
+      if (popularData?.length > 0) {
         const scored = popularData
-          .map(l => {
-            const agentRating = l.agents?.rating || 0
-            const score = (l.views || 0) * 0.6 + (agentRating * 20) * 0.4
-            return { ...l, _score: score }
-          })
+          .map(l => ({ ...l, _score: (l.views || 0) * 0.6 + ((l.agents?.rating || 0) * 20) * 0.4 }))
           .sort((a, b) => b._score - a._score)
           .slice(0, 10)
-
         const pIds = scored.map(l => l.id)
         const { data: pImages } = await supabase.from("listing_images").select("listing_id, url, is_cover").in("listing_id", pIds)
-        setPopularListings(scored.map(l => {
-          const imgs  = pImages ? pImages.filter(i => i.listing_id === l.id) : []
-          const cover = imgs.find(i => i.is_cover)?.url || imgs[0]?.url || null
-          return { ...l, cover_image: cover }
-        }))
+        popularFormatted = scored.map(l => {
+          const imgs = pImages ? pImages.filter(i => i.listing_id === l.id) : []
+          return { ...l, cover_image: imgs.find(i => i.is_cover)?.url || imgs[0]?.url || null }
+        })
+        setPopularListings(popularFormatted)
       }
+
+      // Save to cache
+      try {
+        sessionStorage.setItem("fwh_home_v1", JSON.stringify({
+          data: { listings: formatted, agents: agentsFormatted, stats: newStats, popular: popularFormatted },
+          ts: Date.now()
+        }))
+      } catch(e) {}
     }
 
     fetchData()
@@ -833,7 +849,7 @@ export default function LandingPage() {
       <NavBar scrollY={scrollY} />
       <main>
         <Hero stats={stats} />
-        <FeaturedListings listings={listings} />
+        <FeaturedListings listings={listings} loading={listings.length === 0} />
         <PopularListings listings={popularListings} />
         <CitiesSection />
         <WhySection />
@@ -848,12 +864,16 @@ export default function LandingPage() {
         html { scroll-behavior: smooth; }
         body { margin: 0; -webkit-font-smoothing: antialiased; }
         html, body { max-width: 100vw; overflow-x: hidden; }
-        @keyframes bounce { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(6px)} }
-        @keyframes dropIn { from{opacity:0;transform:translateY(-8px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
+        @keyframes bounce  { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(6px)} }
+        @keyframes dropIn  { from{opacity:0;transform:translateY(-8px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
+        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+        @keyframes fadeUp  { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
+        @keyframes spin    { to{transform:rotate(360deg)} }
         ::-webkit-scrollbar { display: none; }
         .desktop-nav { display: none !important; }
         .list-btn    { display: none !important; }
-        .section-listings, .section-agents { display: none; }
+        .section-listings { display: block; }
+        .section-agents   { display: block; }
         .hero-list-cta { display: block; }
         @media (min-width: 768px) {
           .nav-inner { padding: 0 24px !important; }

@@ -426,7 +426,7 @@ function PropertyMap({ city, state, address, title }) {
   const { MapContainer, TileLayer, Marker, Circle } = require("react-leaflet")
 
   return (
-    <div style={{ borderRadius: 16, overflow: "hidden", border: "1px solid #f1f5f9", height: 280, position: "relative" }}>
+    <div style={{ borderRadius: 16, overflow: "hidden", border: "1px solid #f1f5f9", height: 280, position: "relative", width: "100%", maxWidth: "100%" }}>
       <MapContainer
         center={coords}
         zoom={13}
@@ -782,8 +782,11 @@ export default function ListingDetailPage() {
       if (error || !listingData) { setNotFound(true); setLoading(false); return }
       setListing(listingData)
 
-      // Increment views
-      supabase.rpc("increment_views", { listing_id: id }).then(() => {})
+      // Increment views — direct update (works without RPC function)
+      supabase.from("listings")
+        .update({ views: (listingData.views || 0) + 1 })
+        .eq("id", id)
+        .then(() => {})
 
       const [{ data: imagesData }, { data: agentData }, { data: amenityData }] = await Promise.all([
         supabase.from("listing_images").select("url, is_cover, sort_order").eq("listing_id", id).order("sort_order"),
@@ -859,7 +862,7 @@ export default function ListingDetailPage() {
             <Gallery images={images} />
 
             {/* Title + price */}
-            <div style={{ background: "#fff", borderRadius: 16, padding: "18px", border: "1px solid #f1f5f9", marginBottom: 14 }}>
+            <div style={{ background: "#fff", borderRadius: 16, padding: "18px", border: "1px solid #f1f5f9", marginBottom: 14, overflow: "hidden", maxWidth: "100%", boxSizing: "border-box" }}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
@@ -895,7 +898,7 @@ export default function ListingDetailPage() {
             </div>
 
             {/* Property details grid */}
-            <div style={{ background: "#fff", borderRadius: 16, padding: "18px", border: "1px solid #f1f5f9", marginBottom: 14 }}>
+            <div style={{ background: "#fff", borderRadius: 16, padding: "18px", border: "1px solid #f1f5f9", marginBottom: 14, overflow: "hidden", maxWidth: "100%", boxSizing: "border-box" }}>
               <h2 style={{ margin: "0 0 14px", fontSize: 16, fontWeight: 800, color: "#0d1f2d" }}>Property Details</h2>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(90px,1fr))", gap: 10 }}>
                 {[
@@ -931,7 +934,7 @@ export default function ListingDetailPage() {
 
             {/* Description */}
             {listing.description && (
-              <div style={{ background: "#fff", borderRadius: 16, padding: "18px", border: "1px solid #f1f5f9", marginBottom: 14 }}>
+              <div style={{ background: "#fff", borderRadius: 16, padding: "18px", border: "1px solid #f1f5f9", marginBottom: 14, overflow: "hidden", maxWidth: "100%", boxSizing: "border-box" }}>
                 <h2 style={{ margin: "0 0 12px", fontSize: 16, fontWeight: 800, color: "#0d1f2d" }}>About This Property</h2>
                 <p style={{ margin: 0, fontSize: 14, color: "#374151", lineHeight: 1.8, whiteSpace: "pre-line" }}>{listing.description}</p>
                 {listing.highlights && (
@@ -945,7 +948,7 @@ export default function ListingDetailPage() {
 
             {/* Amenities */}
             {amenities.length > 0 && (
-              <div style={{ background: "#fff", borderRadius: 16, padding: "18px", border: "1px solid #f1f5f9", marginBottom: 14 }}>
+              <div style={{ background: "#fff", borderRadius: 16, padding: "18px", border: "1px solid #f1f5f9", marginBottom: 14, overflow: "hidden", maxWidth: "100%", boxSizing: "border-box" }}>
                 <h2 style={{ margin: "0 0 14px", fontSize: 16, fontWeight: 800, color: "#0d1f2d" }}>Amenities & Features</h2>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,160px),1fr))", gap: 8 }}>
                   {amenities.map(a => (
@@ -962,7 +965,7 @@ export default function ListingDetailPage() {
 
             {/* Pricing breakdown */}
             {(listing.service_fee || listing.caution_fee) && (
-              <div style={{ background: "#fff", borderRadius: 16, padding: "18px", border: "1px solid #f1f5f9", marginBottom: 14 }}>
+              <div style={{ background: "#fff", borderRadius: 16, padding: "18px", border: "1px solid #f1f5f9", marginBottom: 14, overflow: "hidden", maxWidth: "100%", boxSizing: "border-box" }}>
                 <h2 style={{ margin: "0 0 14px", fontSize: 16, fontWeight: 800, color: "#0d1f2d" }}>Pricing Breakdown</h2>
                 {[
                   { label: listing.listing_type === "Buy" ? "Sale Price" : "Rent", val: listing.price_label },
@@ -994,7 +997,7 @@ export default function ListingDetailPage() {
             </div>
 
             {/* Location Map */}
-            <div style={{ background: "#fff", borderRadius: 16, padding: "18px", border: "1px solid #f1f5f9", marginBottom: 14 }}>
+            <div style={{ background: "#fff", borderRadius: 16, padding: "18px", border: "1px solid #f1f5f9", marginBottom: 14, overflow: "hidden", maxWidth: "100%", boxSizing: "border-box" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
                 <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#0d1f2d" }}>Location</h2>
                 <a
@@ -1089,10 +1092,12 @@ export default function ListingDetailPage() {
 
       <style>{`
         @import url('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
-        /* Prevent Leaflet from overlapping fixed navbar */
+        /* Prevent Leaflet from overlapping fixed navbar or overflowing */
         .leaflet-pane { z-index: 10 !important; }
         .leaflet-top, .leaflet-bottom { z-index: 20 !important; }
         .leaflet-control { z-index: 20 !important; }
+        .leaflet-container { max-width: 100% !important; }
+        .leaflet-control-zoom { margin: 8px !important; }
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,600;9..40,700;9..40,800;9..40,900&display=swap');
         *, *::before, *::after { box-sizing: border-box; }
         html, body { margin: 0; max-width: 100vw; overflow-x: hidden; -webkit-font-smoothing: antialiased; }

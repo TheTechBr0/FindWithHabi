@@ -289,7 +289,8 @@ function PropertyCard({ listing, saved, onSave, index }) {
   const coverImg  = listing.cover_image || FALLBACK_IMG
 
   return (
-    <article style={{ background:"#fff",borderRadius:20,overflow:"hidden",border:"1px solid #f1f5f9",boxShadow:"0 2px 12px rgba(0,0,0,0.05)",display:"flex",flexDirection:"column",animation:"fadeUp 0.45s ease "+(index*55)+"ms both" }}>
+    <article onClick={() => { try { sessionStorage.setItem("fwh_listings_scroll", window.scrollY) } catch(e) {} }}
+      style={{ background:"#fff",borderRadius:20,overflow:"hidden",border:"1px solid #f1f5f9",boxShadow:"0 2px 12px rgba(0,0,0,0.05)",display:"flex",flexDirection:"column",animation:"fadeUp 0.45s ease "+(index*55)+"ms both" }}>
       <div style={{ position:"relative",height:200,overflow:"hidden",flexShrink:0 }}>
         <img src={coverImg} alt={listing.title} loading="lazy" decoding="async"
           style={{ width:"100%",height:"100%",objectFit:"cover",transition:"transform 0.4s" }}
@@ -557,15 +558,45 @@ function ListingsPage() {
   }, [saved])
 
   // ── Fetch listings + saved state ─────────────────────────────────────────────
+  // Save scroll position before leaving page
   useEffect(() => {
-    const fetchAll = async () => {
-      setLoading(true)
+    const saveScroll = () => sessionStorage.setItem("fwh_listings_scroll", window.scrollY)
+    window.addEventListener("beforeunload", saveScroll)
+    return () => window.removeEventListener("beforeunload", saveScroll)
+  }, [])
+
+  useEffect(() => {
+    const fetchAll = async (fromCache = false) => {
+      // Stale-while-revalidate: show cache instantly, fetch fresh in background
+      const CACHE_KEY = "fwh_listings_v1"
+      const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+      try {
+        const cached = sessionStorage.getItem(CACHE_KEY)
+        if (cached) {
+          const { data: c, ts } = JSON.parse(cached)
+          // Always show cached data instantly — even if stale
+          setListings(c)
+          setLoading(false)
+          // Restore scroll position
+          try {
+            const savedScroll = sessionStorage.getItem("fwh_listings_scroll")
+            if (savedScroll) {
+              setTimeout(() => { window.scrollTo({ top: parseInt(savedScroll), behavior: "instant" }); sessionStorage.removeItem("fwh_listings_scroll") }, 50)
+            }
+          } catch(e) {}
+          // If fresh enough, skip network entirely
+          if (Date.now() - ts < CACHE_TTL) return
+          // Otherwise fetch fresh in background without showing loading
+        }
+      } catch(e) {}
+
+      if (!fromCache) setLoading(true)
       setError(null)
 
-      // 1. Fetch listings
+      // Fetch listings and agents in parallel
       const { data: listingsData, error: listingsError } = await supabase
         .from("listings")
-        .select("*")
+        .select("*, agents(is_verified, rating)")
         .eq("status", "active")
         .order("created_at", { ascending: false })
 
@@ -596,6 +627,15 @@ function ListingsPage() {
       })
 
       setListings(formatted)
+      // Save to cache for instant repeat visits
+      try { sessionStorage.setItem("fwh_listings_v1", JSON.stringify({ data: formatted, ts: Date.now() })) } catch(e) {}
+      // Restore scroll position when coming back
+      try {
+        const savedScroll = sessionStorage.getItem("fwh_listings_scroll")
+        if (savedScroll) {
+          setTimeout(() => { window.scrollTo({ top: parseInt(savedScroll), behavior: "instant" }); sessionStorage.removeItem("fwh_listings_scroll") }, 50)
+        }
+      } catch(e) {}
 
       // 4. Load saved listings for logged-in user
       const { data: { user } } = await supabase.auth.getUser()
