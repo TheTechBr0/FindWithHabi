@@ -92,6 +92,7 @@ export default function RootLayout({ children }) {
   return (
     <html
       lang="en"
+      data-scroll-behavior="smooth"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
@@ -102,6 +103,31 @@ export default function RootLayout({ children }) {
         <link rel="icon" href="/icon.png" type="image/png" />
         <link rel="apple-touch-icon" href="/icon.png" />
         <link rel="shortcut icon" href="/icon.png" type="image/png" />
+
+        {/* ── PWA: makes app installable on Android Chrome ── */}
+        <meta name="mobile-web-app-capable" content="yes" />
+
+        {/* ── PWA: makes app installable on iPhone/iPad Safari ── */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+
+        {/* App name shown under icon on iPhone home screen */}
+        <meta name="apple-mobile-web-app-title" content="FindWithHabi" />
+
+        {/* Status bar on iPhone — blends with your dark teal navbar */}
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+        {/* Browser toolbar colour on Android */}
+        <meta name="theme-color" content="#0097B2" />
+
+        {/* Viewport — prevents zoom on input focus on iOS */}
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+
+        {/* Splash screen icon for iPhone */}
+        <link rel="apple-touch-startup-image" href="/icon.png" />
+
+        {/* Windows tiles */}
+        <meta name="msapplication-TileColor" content="#0097B2" />
+        <meta name="msapplication-TileImage" content="/icon.png" />
 
         {/* JSON-LD — Organisation */}
         <script
