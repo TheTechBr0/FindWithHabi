@@ -144,7 +144,7 @@ function ContactForm({ agent, authUser, userData }) {
     setSending(true)
 
     // Insert enquiry without listing_id (general agent contact)
-    await supabase.from("enquiries").insert({
+    const { data: enquiryInserted } = await supabase.from("enquiries").insert({
       agent_id:     agent.id,
       user_id:      authUser.id,
       sender_name:  userData?.full_name || authUser.email,
@@ -152,7 +152,44 @@ function ContactForm({ agent, authUser, userData }) {
       sender_phone: phone || userData?.phone || "",
       message,
       status:       "new",
-    })
+    }).select().single()
+
+    // In-app notification to agent
+    if (agent?.user_id) {
+      const senderName = userData?.full_name || authUser.email || "A buyer"
+      await supabase.from("notifications").insert({
+        user_id: agent.user_id,
+        type:    "personal",
+        title:   senderName + " sent you an enquiry",
+        body:    message.slice(0, 100) + (message.length > 100 ? "…" : ""),
+        link:    enquiryInserted?.id || "",
+      })
+    }
+
+    // Email notification to agent
+    try {
+      const { data: agentUserData } = await supabase
+        .from("users")
+        .select("email, full_name")
+        .eq("id", agent.user_id)
+        .single()
+
+      if (agentUserData?.email) {
+        fetch("/api/notify-agent", {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            agentEmail: agentUserData.email,
+            agentName:  agentUserData.full_name?.split(" ")[0] || "Agent",
+            buyerName:  userData?.full_name || authUser.email,
+            buyerPhone: phone || userData?.phone || "",
+            listingTitle: null,
+            message,
+            enquiryId: enquiryInserted?.id,
+          }),
+        }).catch(() => {})
+      }
+    } catch(e) {}
 
     setSending(false)
     setSent(true)
