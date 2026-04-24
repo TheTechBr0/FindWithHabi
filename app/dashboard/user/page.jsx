@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { useToast } from "@/components/Toast"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
+import { Suspense } from "react"
 import { supabase } from "@/lib/supabase"
 import {
   Users, Heart, MessageCircle, Search, Settings, LogOut, Bell, Flag,
@@ -1374,7 +1375,7 @@ function UserSettings({ user, onUpdate }) {
   )
 }
 
-export default function UserDashboard() {
+function UserDashboardInner() {
   const router = useRouter()
   const searchParams    = useSearchParams()
   const [tab,           setTab]           = useState(searchParams.get("tab") || "overview")
@@ -1583,5 +1584,13 @@ export default function UserDashboard() {
         }
       `}</style>
     </div>
+  )
+}
+
+export default function UserDashboard() {
+  return (
+    <Suspense fallback={null}>
+      <UserDashboardInner />
+    </Suspense>
   )
 }
