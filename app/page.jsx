@@ -5,9 +5,9 @@ import Link from "next/link"
 import { supabase } from "@/lib/supabase"
 import {
   Search, MapPin, Home, Building2, Key, ArrowRight, ArrowUpRight,
-  Star, Shield, Zap, Heart, Phone,
+  Star, Shield, Zap, Heart, Phone, Eye,
   Globe, MessageCircle, Share2, TrendingUp, CheckCircle,
-  X, Sparkles, Award, Clock, Menu, ChevronDown, BadgeCheck, Bed, Bath,Eye,Maximize2,
+  X, Sparkles, Award, Clock, Menu, ChevronDown, BadgeCheck, Bed, Bath, Maximize2,
 } from "lucide-react"
 
 const T      = "#0097B2"
@@ -38,6 +38,8 @@ function useInView(threshold = 0.1) {
   }, [threshold])
   return [ref, inView]
 }
+
+// ─── Dark Mode Toggle ─────────────────────────────────────────────────────────
 
 // ─── NavBar ───────────────────────────────────────────────────────────────────
 function NavBar({ scrollY }) {
@@ -353,7 +355,7 @@ function FeaturedListings({ listings, loading }) {
                   <span style={{ fontSize: 12, color: "#64748b" }}>{l.city}, {l.state}</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 17, fontWeight: 900, color: T }}>{l.price_label}</span>
+                  <span style={{ fontSize: 15, fontWeight: 900, color: "#fff", background: T, padding: "4px 12px", borderRadius: 50, boxShadow: "0 2px 8px rgba(0,151,178,0.3)" }}>{l.price_label}</span>
                   <span style={{ fontSize: 11, color: "#94a3b8" }}>{(l.views || 0).toLocaleString()} views</span>
                 </div>
               </div>
@@ -874,6 +876,11 @@ export default function LandingPage() {
         .list-btn    { display: none !important; }
         .section-listings { display: block; }
         .section-agents   { display: block; }
+        /* Dark mode overrides */
+        html.dark .bg-white-card { background: #1c2128 !important; border-color: #30363d !important; }
+        html.dark .text-dark { color: #e6edf3 !important; }
+        html.dark .text-muted { color: #8b949e !important; }
+        html.dark .bg-light { background: #161b22 !important; }
         .hero-list-cta { display: block; }
         @media (min-width: 768px) {
           .nav-inner { padding: 0 24px !important; }

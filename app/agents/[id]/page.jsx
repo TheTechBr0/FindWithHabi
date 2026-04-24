@@ -166,30 +166,7 @@ function ContactForm({ agent, authUser, userData }) {
       })
     }
 
-    // Email notification to agent
-    try {
-      const { data: agentUserData } = await supabase
-        .from("users")
-        .select("email, full_name")
-        .eq("id", agent.user_id)
-        .single()
-
-      if (agentUserData?.email) {
-        fetch("/api/notify-agent", {
-          method:  "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            agentEmail: agentUserData.email,
-            agentName:  agentUserData.full_name?.split(" ")[0] || "Agent",
-            buyerName:  userData?.full_name || authUser.email,
-            buyerPhone: phone || userData?.phone || "",
-            listingTitle: null,
-            message,
-            enquiryId: enquiryInserted?.id,
-          }),
-        }).catch(() => {})
-      }
-    } catch(e) {}
+    // Email notifications will be enabled once domain is verified on Resend
 
     setSending(false)
     setSent(true)

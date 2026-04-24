@@ -114,14 +114,23 @@ function AdminNotificationBell({ adminUserId }) {
   const [open,   setOpen]   = useState(false)
   const [notifs, setNotifs] = useState([])
   const unread = notifs.filter(n => !n.is_read).length
-  const ICONS = { general:"🔔", warning:"⚠️", feature:"🚀", announcement:"📢", policy:"📋", personal:"💬" }
 
-  const load = () => {
-    if (!adminUserId) return
-    supabase.from("notifications").select("*").eq("user_id", adminUserId)
-      .order("created_at", { ascending: false }).limit(30)
-      .then(({ data }) => setNotifs(data || []))
+  const TYPE_CONFIG = {
+    personal:     { icon: "💬", bg: "#e0f7fa" },
+    general:      { icon: "🔔", bg: "#f1f5f9" },
+    warning:      { icon: "⚠️", bg: "#fffbeb" },
+    feature:      { icon: "🚀", bg: "#f5f3ff" },
+    announcement: { icon: "📢", bg: "#fdf2f8" },
+    policy:       { icon: "📋", bg: "#f8fafc" },
   }
+
+  const load = async () => {
+    if (!adminUserId) return
+    const { data } = await supabase.from("notifications").select("*")
+      .eq("user_id", adminUserId).order("created_at", { ascending: false }).limit(30)
+    setNotifs(data || [])
+  }
+
   useEffect(() => { load() }, [adminUserId])
   useEffect(() => {
     if (!adminUserId) return
@@ -140,44 +149,86 @@ function AdminNotificationBell({ adminUserId }) {
     setNotifs(p => p.map(n => ({ ...n, is_read: true })))
   }
 
+  const formatTime = (ts) => {
+    const diff = Math.floor((new Date() - new Date(ts)) / 1000)
+    if (diff < 60)    return "just now"
+    if (diff < 3600)  return Math.floor(diff/60) + "m ago"
+    if (diff < 86400) return Math.floor(diff/3600) + "h ago"
+    return new Date(ts).toLocaleDateString("en-NG", { day: "numeric", month: "short" })
+  }
+
   return (
     <div style={{ position: "relative" }}>
       <button onClick={() => { setOpen(p => !p); load() }}
-        style={{ position: "relative", width: 40, height: 40, borderRadius: 10, background: "#f8fafc", border: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-        <Bell size={17} color="#64748b" />
-        {unread > 0 && <span style={{ position: "absolute", top: 6, right: 6, width: 8, height: 8, borderRadius: "50%", background: "#ef4444", border: "2px solid #fff" }} />}
+        style={{ position: "relative", width: 40, height: 40, borderRadius: 12, background: open ? T + "12" : "#f8fafc", border: `1.5px solid ${open ? T + "40" : "#e2e8f0"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.2s" }}>
+        <Bell size={17} color={open ? T : "#64748b"} />
+        {unread > 0 && (
+          <span style={{ position: "absolute", top: -4, right: -4, minWidth: 18, height: 18, borderRadius: 9, background: "#ef4444", border: "2px solid #fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 900, color: "#fff", padding: "0 3px" }}>
+            {unread > 9 ? "9+" : unread}
+          </span>
+        )}
       </button>
       {open && (
         <>
-          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 10 }} />
-          <div style={{ position: "fixed", top: 70, right: 8, left: 8, zIndex: 9999, maxWidth: 400, marginLeft: "auto", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 18, boxShadow: "0 16px 48px rgba(0,0,0,0.15)", overflow: "hidden" }}>
-            <div style={{ padding: "14px 16px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={{ fontSize: 14, fontWeight: 800, color: "#0d1f2d" }}>
-                Notifications
-                {unread > 0 && <span style={{ background: "#ef4444", color: "#fff", fontSize: 10, fontWeight: 800, padding: "2px 6px", borderRadius: 50, marginLeft: 6 }}>{unread}</span>}
-              </span>
-              {unread > 0 && <button onClick={markAllRead} style={{ fontSize: 11, color: T, fontWeight: 700, background: "none", border: "none", cursor: "pointer" }}>Mark all read</button>}
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 190 }} />
+          <div style={{ position: "fixed", top: 70, right: 8, left: 8, zIndex: 9999, maxWidth: 400, marginLeft: "auto", background: "#fff", borderRadius: 20, boxShadow: "0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05)", overflow: "hidden", animation: "fadeUp 0.2s ease" }}>
+            <div style={{ padding: "16px 18px 12px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 10, background: T + "12", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Bell size={15} color={T} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 900, color: "#0d1f2d" }}>Notifications</div>
+                  {unread > 0 && <div style={{ fontSize: 11, color: "#94a3b8" }}>{unread} unread</div>}
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                {unread > 0 && (
+                  <button onClick={markAllRead} style={{ fontSize: 11, color: T, fontWeight: 800, background: T + "10", border: "none", cursor: "pointer", padding: "5px 10px", borderRadius: 8 }}>
+                    Mark all read
+                  </button>
+                )}
+                <button onClick={() => setOpen(false)} style={{ width: 28, height: 28, borderRadius: 8, background: "#f8fafc", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                  <X size={14} color="#64748b" />
+                </button>
+              </div>
             </div>
             <div style={{ maxHeight: 420, overflowY: "auto" }}>
               {notifs.length === 0 ? (
-                <div style={{ padding: "32px", textAlign: "center", color: "#94a3b8" }}>
-                  <Bell size={28} color="#e2e8f0" style={{ marginBottom: 8 }} />
-                  <p style={{ margin: 0, fontSize: 13 }}>No notifications yet</p>
-                </div>
-              ) : notifs.map(n => (
-                <div key={n.id} onClick={() => markRead(n.id)}
-                  style={{ padding: "12px 16px", borderBottom: "1px solid #f8fafc", background: n.is_read ? "#fff" : T + "06", cursor: "pointer" }}>
-                  <div style={{ display: "flex", gap: 10 }}>
-                    <span style={{ fontSize: 18, flexShrink: 0 }}>{ICONS[n.type] || "🔔"}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: "#0d1f2d", marginBottom: 2 }}>{n.title}</div>
-                      <div style={{ fontSize: 12, color: "#64748b", lineHeight: 1.5, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{n.body || n.message || ""}</div>
-                      <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>{new Date(n.created_at).toLocaleDateString()}</div>
-                    </div>
-                    {!n.is_read && <div style={{ width: 7, height: 7, borderRadius: "50%", background: T, flexShrink: 0, marginTop: 4 }} />}
+                <div style={{ padding: "48px 24px", textAlign: "center" }}>
+                  <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
+                    <Bell size={24} color="#cbd5e1" />
                   </div>
+                  <p style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#64748b" }}>All caught up!</p>
+                  <p style={{ margin: 0, fontSize: 12, color: "#94a3b8" }}>No notifications yet</p>
                 </div>
-              ))}
+              ) : notifs.map((n, i) => {
+                const tc = TYPE_CONFIG[n.type] || TYPE_CONFIG.general
+                return (
+                  <div key={n.id} onClick={() => markRead(n.id)}
+                    style={{ padding: "14px 18px", borderBottom: i < notifs.length - 1 ? "1px solid #f8fafc" : "none", background: n.is_read ? "#fff" : T + "05", cursor: "pointer", transition: "background 0.15s" }}
+                    onMouseEnter={e => { e.currentTarget.style.background = "#f8fafc" }}
+                    onMouseLeave={e => { e.currentTarget.style.background = n.is_read ? "#fff" : T + "05" }}>
+                    <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                      <div style={{ width: 38, height: 38, borderRadius: 12, background: tc.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
+                        {tc.icon}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 3 }}>
+                          <span style={{ fontSize: 13, fontWeight: n.is_read ? 600 : 800, color: "#0d1f2d", lineHeight: 1.4 }}>{n.title}</span>
+                          <span style={{ fontSize: 10, color: "#94a3b8", whiteSpace: "nowrap", flexShrink: 0 }}>{formatTime(n.created_at)}</span>
+                        </div>
+                        {(n.body || n.message) && (
+                          <p style={{ margin: 0, fontSize: 12, color: "#64748b", lineHeight: 1.5, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+                            {n.body || n.message}
+                          </p>
+                        )}
+                      </div>
+                      {!n.is_read && <div style={{ width: 8, height: 8, borderRadius: "50%", background: T, flexShrink: 0, marginTop: 5 }} />}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </>
@@ -540,7 +591,7 @@ function ListingsTab({ listings, loading, onRefresh }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {filtered.map((l, i) => (
             <div key={l.id} onClick={() => setSelected(l)}
-              style={{ background: "#fff", borderRadius: 16, border: "1px solid " + (l.is_flagged ? "#fca5a5" : "#f1f5f9"), overflow: "hidden", display: "flex", animation: "fadeUp 0.4s ease " + (i * 35) + "ms both", cursor: "pointer" }}>
+              className="listing-card" style={{ background: "#fff", borderRadius: 16, border: "1px solid " + (l.is_flagged ? "#fca5a5" : "#f1f5f9"), overflow: "hidden", display: "flex", animation: "fadeUp 0.4s ease " + (i * 35) + "ms both", cursor: "pointer" }}>
               <div style={{ width: "clamp(80px,18%,130px)", flexShrink: 0, background: "#f1f5f9" }}>
                 {l.cover_image
                   ? <img src={l.cover_image} alt={l.title} style={{ width: "100%", height: "100%", objectFit: "cover", minHeight: 90 }} />
@@ -1610,24 +1661,37 @@ export default function AdminDashboard() {
         :focus-visible { outline: 2px solid ${T}; outline-offset: 3px; border-radius: 4px; }
         @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
         @keyframes spin   { to{transform:rotate(360deg)} }
+        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+        @keyframes popIn  { from{transform:scale(0.5);opacity:0} to{transform:scale(1);opacity:1} }
+
+        /* ── Mobile base — everything single column ── */
         .sidebar-close { display: flex !important; }
-        /* Mobile base styles */
         .verif-layout  { grid-template-columns: 1fr !important; }
         .notif-layout  { grid-template-columns: 1fr !important; }
-        .stats-grid    { grid-template-columns: repeat(2, 1fr) !important; }
-        .action-grid   { grid-template-columns: 1fr !important; }
-        /* Hide admin panel badge text on small screens */
-        @media (max-width: 480px) {
+        .stats-grid    { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+        .action-grid   { grid-template-columns: repeat(2, 1fr) !important; }
+        .listing-card  { flex-direction: column !important; }
+        .listing-card img { width: 100% !important; height: 160px !important; }
+
+        @media (max-width: 380px) {
+          .stats-grid  { grid-template-columns: repeat(2, 1fr) !important; }
+          .main-container { padding: 12px 12px 48px !important; }
           .admin-badge-text { display: none !important; }
-          .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+        @media (min-width: 480px) {
+          .stats-grid  { grid-template-columns: repeat(2, 1fr) !important; }
+          .action-grid { grid-template-columns: repeat(2, 1fr) !important; }
         }
         @media (min-width: 640px) {
-          .stats-grid { grid-template-columns: repeat(3, 1fr) !important; }
-          .action-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .stats-grid  { grid-template-columns: repeat(3, 1fr) !important; }
+          .action-grid { grid-template-columns: repeat(3, 1fr) !important; }
+          .listing-card { flex-direction: row !important; }
+          .listing-card img { width: 120px !important; height: 90px !important; }
         }
         @media (min-width: 768px) {
           .main-container { padding: 24px 24px 48px !important; }
-          .action-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .stats-grid  { grid-template-columns: repeat(4, 1fr) !important; }
+          .action-grid { grid-template-columns: repeat(4, 1fr) !important; }
         }
         @media (min-width: 1024px) {
           .sidebar { transform: translateX(0) !important; box-shadow: none !important; }
@@ -1637,8 +1701,8 @@ export default function AdminDashboard() {
           .main-container { padding: 28px 32px 64px !important; }
           .verif-layout { grid-template-columns: 1fr 380px !important; align-items: start; }
           .notif-layout { grid-template-columns: 1fr 1fr !important; }
-          .stats-grid { grid-template-columns: repeat(4, 1fr) !important; }
-          .action-grid { grid-template-columns: repeat(4, 1fr) !important; }
+          .stats-grid   { grid-template-columns: repeat(4, 1fr) !important; gap: 16px !important; }
+          .action-grid  { grid-template-columns: repeat(4, 1fr) !important; }
         }
         @media (prefers-reduced-motion: reduce) {
           *,*::before,*::after { animation-duration:0.01ms !important; transition-duration:0.01ms !important; }

@@ -1,5 +1,9 @@
 import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
+import { ToastProvider } from "@/components/Toast"
+import ProgressBar from "@/components/ProgressBar"
+import ScrollToTop from "@/components/ScrollToTop"
+import { Suspense } from "react"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -176,7 +180,13 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className="min-h-full flex flex-col">
-        {children}
+        <ToastProvider>
+          <Suspense fallback={null}>
+            <ProgressBar />
+          </Suspense>
+          {children}
+          <ScrollToTop />
+        </ToastProvider>
       </body>
     </html>
   )

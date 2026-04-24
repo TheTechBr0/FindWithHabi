@@ -117,6 +117,8 @@ const TAG_COLORS = {
 
 const FALLBACK_IMG = "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=700&q=80"
 
+// ─── Dark Mode Toggle ─────────────────────────────────────────────────────────
+
 // ─── NavBar ───────────────────────────────────────────────────────────────────
 function NavBar() {
   const [scrolled,  setScrolled]  = useState(false)
@@ -181,7 +183,13 @@ function Dropdown({ label, value, options, onChange }) {
   const openMenu = () => {
     if (btnRef.current) {
       const r = btnRef.current.getBoundingClientRect()
-      setCoords({ top: r.bottom + 6, left: r.left, width: Math.max(r.width, 200) })
+      const vw = window.innerWidth
+      const menuW = Math.max(r.width, 200)
+      // Prevent overflow on right edge
+      const left = Math.min(r.left, vw - menuW - 8)
+      // Never go off left edge
+      const safeLeft = Math.max(8, left)
+      setCoords({ top: r.bottom + 6, left: safeLeft, width: menuW })
     }
     setOpen(true)
   }
@@ -191,7 +199,11 @@ function Dropdown({ label, value, options, onChange }) {
     const reposition = () => {
       if (btnRef.current) {
         const r = btnRef.current.getBoundingClientRect()
-        setCoords({ top: r.bottom + 6, left: r.left, width: Math.max(r.width, 200) })
+        const vw = window.innerWidth
+        const menuW = Math.max(r.width, 200)
+        const left = Math.min(r.left, vw - menuW - 8)
+        const safeLeft = Math.max(8, left)
+        setCoords({ top: r.bottom + 6, left: safeLeft, width: menuW })
       }
     }
     window.addEventListener("scroll", reposition, true)
@@ -219,7 +231,7 @@ function Dropdown({ label, value, options, onChange }) {
         <ChevronDown size={13} style={{ transition:"transform 0.2s",transform:open?"rotate(180deg)":"none",flexShrink:0 }} />
       </button>
       {open && (
-        <div ref={menuRef} style={{ position:"fixed",top:coords.top,left:coords.left,minWidth:coords.width,zIndex:9999,background:"#fff",border:"1.5px solid #e8edf2",borderRadius:16,boxShadow:"0 24px 64px rgba(0,0,0,0.16)",overflow:"hidden",animation:"dropIn 0.15s ease",maxHeight:"60vh",overflowY:"auto" }}>
+        <div ref={menuRef} style={{ position:"fixed",top:coords.top,left:coords.left,minWidth:coords.width,maxWidth:"calc(100vw - 16px)",zIndex:9999,background:"#fff",border:"1.5px solid #e8edf2",borderRadius:16,boxShadow:"0 24px 64px rgba(0,0,0,0.16)",overflow:"hidden",animation:"dropIn 0.15s ease",maxHeight:"60vh",overflowY:"auto" }}>
           {options.map(opt => {
             const sel = value === opt
             return (
@@ -273,7 +285,7 @@ function SectionLabel({ icon:Icon, color, label, title, onCta }) {
 function Skeleton() {
   return (
     <div style={{ background:"#fff",borderRadius:20,overflow:"hidden",border:"1px solid #f1f5f9" }}>
-      <div style={{ height:200,background:"linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite" }} />
+      <div style={{ height:"clamp(130px,35vw,200px)",background:"linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite" }} />
       <div style={{ padding:"15px 17px",display:"flex",flexDirection:"column",gap:10 }}>
         <div style={{ height:16,borderRadius:8,background:"linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%)",backgroundSize:"200% 100%",width:"70%",animation:"shimmer 1.5s infinite" }} />
         <div style={{ height:12,borderRadius:8,background:"linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%)",backgroundSize:"200% 100%",width:"50%",animation:"shimmer 1.5s infinite" }} />
@@ -291,7 +303,7 @@ function PropertyCard({ listing, saved, onSave, index }) {
   return (
     <article onClick={() => { try { sessionStorage.setItem("fwh_listings_scroll", window.scrollY) } catch(e) {} }}
       style={{ background:"#fff",borderRadius:20,overflow:"hidden",border:"1px solid #f1f5f9",boxShadow:"0 2px 12px rgba(0,0,0,0.05)",display:"flex",flexDirection:"column",animation:"fadeUp 0.45s ease "+(index*55)+"ms both" }}>
-      <div style={{ position:"relative",height:200,overflow:"hidden",flexShrink:0 }}>
+      <div style={{ position:"relative",height:"clamp(130px,35vw,200px)",overflow:"hidden",flexShrink:0 }}>
         <img src={coverImg} alt={listing.title} loading="lazy" decoding="async"
           style={{ width:"100%",height:"100%",objectFit:"cover",transition:"transform 0.4s" }}
           onMouseEnter={e => (e.currentTarget.style.transform="scale(1.05)")}
@@ -301,6 +313,12 @@ function PropertyCard({ listing, saved, onSave, index }) {
         {listing.tag && (
           <span style={{ position:"absolute",top:12,left:12,background:tc.bg,color:tc.color,fontSize:11,fontWeight:800,padding:"4px 10px",borderRadius:50 }}>
             {listing.tag}
+          </span>
+        )}
+        {/* Hot badge — shows when listing has 50+ views */}
+        {(listing.views || 0) >= 50 && (
+          <span style={{ position:"absolute",top:12,right:44,background:"rgba(239,68,68,0.92)",color:"#fff",fontSize:10,fontWeight:900,padding:"3px 8px",borderRadius:50,backdropFilter:"blur(4px)",display:"flex",alignItems:"center",gap:3 }}>
+            🔥 Hot
           </span>
         )}
         <button onClick={() => onSave(listing.id)} aria-pressed={saved}
@@ -320,9 +338,9 @@ function PropertyCard({ listing, saved, onSave, index }) {
           )}
         </div>
       </div>
-      <div style={{ padding:"15px 17px",flex:1,display:"flex",flexDirection:"column" }}>
+      <div style={{ padding:"10px clamp(8px,2.5vw,17px)",flex:1,display:"flex",flexDirection:"column" }}>
         <div style={{ display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:6,marginBottom:5 }}>
-          <h3 style={{ margin:0,fontSize:14,fontWeight:800,color:"#0d1f2d",letterSpacing:"-0.02em",lineHeight:1.3 }}>{listing.title}</h3>
+          <h3 style={{ margin:0,fontSize:"clamp(11px,3vw,14px)",fontWeight:800,color:"#0d1f2d",letterSpacing:"-0.02em",lineHeight:1.3,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical" }}>{listing.title}</h3>
           {listing.agents?.rating > 0 && (
             <div style={{ display:"flex",alignItems:"center",gap:3,flexShrink:0 }}>
               <Star size={11} color="#f59e0b" fill="#f59e0b" />
@@ -332,7 +350,7 @@ function PropertyCard({ listing, saved, onSave, index }) {
         </div>
         <div style={{ display:"flex",alignItems:"center",gap:4,marginBottom:10 }}>
           <MapPin size={11} color={T} />
-          <span style={{ fontSize:12,color:"#64748b" }}>{listing.city}, {listing.state}</span>
+          <span style={{ fontSize:"clamp(10px,2.5vw,12px)",color:"#64748b",overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis" }}>{listing.city}, {listing.state}</span>
         </div>
         {listing.beds > 0 && (
           <div style={{ display:"flex",gap:12,marginBottom:12,paddingBottom:12,borderBottom:"1px solid #f1f5f9" }}>
@@ -342,7 +360,7 @@ function PropertyCard({ listing, saved, onSave, index }) {
           </div>
         )}
         <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:"auto" }}>
-          <span style={{ fontSize:19,fontWeight:900,color:T,letterSpacing:"-0.02em" }}>{listing.price_label}</span>
+          <span style={{ fontSize:"clamp(13px,3.5vw,16px)",fontWeight:900,color:"#fff",letterSpacing:"-0.02em",background:T,padding:"5px 12px",borderRadius:50,boxShadow:"0 2px 8px rgba(0,151,178,0.3)" }}>{listing.price_label}</span>
           <Link href={"/listings/"+listing.id}
             style={{ display:"flex",alignItems:"center",gap:5,padding:"7px 13px",borderRadius:10,background:"#f1f5f9",color:"#0d1f2d",fontSize:12,fontWeight:700,textDecoration:"none",transition:"all 0.2s",minHeight:36 }}
             onMouseEnter={e => { e.currentTarget.style.background=T; e.currentTarget.style.color="#fff" }}
@@ -380,7 +398,7 @@ function PropertyRow({ listing, saved, onSave, index }) {
           </div>
           <div style={{ display:"flex",alignItems:"center",gap:5,marginBottom:6 }}>
             <MapPin size={11} color={T} />
-            <span style={{ fontSize:12,color:"#64748b" }}>{listing.city}, {listing.state}</span>
+            <span style={{ fontSize:"clamp(10px,2.5vw,12px)",color:"#64748b",overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis" }}>{listing.city}, {listing.state}</span>
             {listing.is_verified && <span style={{ fontSize:10,fontWeight:700,color:"#10b981",background:"#10b98118",padding:"2px 7px",borderRadius:50 }}>✓ Verified</span>}
           </div>
           {listing.beds > 0 && (
@@ -740,7 +758,7 @@ function ListingsPage() {
               <Pill key={t} label={t} active={activeType===t} onClick={() => setActiveType(t)} color={t==="Student"?"#059669":T} />
             ))}
           </div>
-          <div style={{ display:"flex",alignItems:"center",gap:8,paddingBottom:10,flexWrap:"wrap" }}>
+          <div style={{ display:"flex",alignItems:"center",gap:8,paddingBottom:10,overflowX:"auto",scrollbarWidth:"none",WebkitOverflowScrolling:"touch",msOverflowStyle:"none" }}>
             <Dropdown label="State"    value={activeState!=="All States"?activeState:""}         options={STATES}                      onChange={v => setActiveState(v)} />
             <Dropdown label="Price"    value={priceRange.label!=="Any Price"?priceRange.label:""} options={PRICE_RANGES.map(p => p.label)} onChange={v => setPriceRange(PRICE_RANGES.find(p => p.label===v))} />
             <Dropdown label="Bedrooms" value={beds!=="Any"?beds:""}                               options={BEDS_OPTIONS}                onChange={v => setBeds(v)} />
@@ -764,7 +782,7 @@ function ListingsPage() {
         )}
 
         {loading && !error && (
-          <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,295px),1fr))",gap:18 }}>
+          <div style={{ display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12 }} className="listings-grid">
             {[...Array(6)].map((_,i) => <Skeleton key={i} />)}
           </div>
         )}
@@ -824,8 +842,17 @@ function ListingsPage() {
         {!loading && !error && (
           <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,marginBottom:20,flexWrap:"wrap",position:"relative",zIndex:160 }}>
             <div>
-              <span style={{ fontSize:15,fontWeight:800,color:"#0d1f2d" }}>{sorted.length} Properties</span>
-              {hasFilters && <span style={{ fontSize:13,color:"#94a3b8",marginLeft:8 }}>matching filters</span>}
+              <span style={{ fontSize:15,fontWeight:800,color:"#0d1f2d" }}>
+                {sorted.length} {sorted.length === 1 ? "property" : "properties"}
+              </span>
+              <span style={{ fontSize:13,color:"#94a3b8",marginLeft:6 }}>
+                {activeState !== "All States" ? `in ${activeState}` : ""}
+                {activeType !== "All" ? ` · ${activeType}` : ""}
+                {beds !== "Any" ? ` · ${beds} bed${beds !== "1" ? "s" : ""}` : ""}
+                {priceRange.label !== "Any Price" ? ` · ${priceRange.label}` : ""}
+                {search ? ` · "${search}"` : ""}
+                {!hasFilters && "across Nigeria"}
+              </span>
             </div>
             <div style={{ display:"flex",alignItems:"center",gap:10 }}>
               <Dropdown label="Sort" value={sort} options={SORTS} onChange={setSort} />
@@ -856,7 +883,7 @@ function ListingsPage() {
         )}
 
         {!loading && !error && view !== "map" && paginated.length > 0 && (
-          <div style={view==="grid" ? { display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(100%,295px),1fr))",gap:18 } : { display:"flex",flexDirection:"column",gap:14 }}>
+          <div style={view==="grid" ? { display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12 } : { display:"flex",flexDirection:"column",gap:14 }} className={view==="grid" ? "listings-grid" : ""}>
             {paginated.map((l,i) =>
               view === "grid"
                 ? <PropertyCard key={l.id} listing={l} saved={saved.includes(l.id)} onSave={toggleSave} index={i} />
@@ -918,6 +945,10 @@ function ListingsPage() {
         a, button { -webkit-tap-highlight-color:transparent; }
         :focus-visible { outline:2px solid ${T}; outline-offset:3px; border-radius:4px; }
         @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
+        /* Listings grid responsive */
+        .listings-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+        @media (min-width: 640px)  { .listings-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 14px !important; } }
+        @media (min-width: 1024px) { .listings-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 18px !important; } }
         @keyframes dropIn { from{opacity:0;transform:translateY(-6px) scale(0.98)} to{opacity:1;transform:none} }
         @keyframes spin { to{transform:rotate(360deg)} }
         @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }

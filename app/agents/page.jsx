@@ -18,6 +18,8 @@ const DARK   = "#080f14"
 const STATES = ["All States","Lagos","Abuja","Rivers","Enugu","Delta","Kano","Anambra","Imo","Oyo","Kaduna","Cross River","Akwa Ibom","Ogun"]
 const SORTS  = ["Top Rated","Most Listings","Most Reviews","Newest"]
 
+// ─── Dark Mode Toggle ─────────────────────────────────────────────────────────
+
 // ─── NavBar ───────────────────────────────────────────────────────────────────
 function NavBar() {
   const [scrolled,  setScrolled]  = useState(false)

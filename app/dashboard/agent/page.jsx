@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { useToast } from "@/components/Toast"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import {
-  Users, Home, Flag, ArrowRight, Heart, Building2, MessageCircle, TrendingUp, Settings, LogOut,
+  Users, Home, Flag, ArrowRight, ArrowLeft, Heart, Building2, MessageCircle, TrendingUp, Settings, LogOut,
   Bell, Plus, Eye, Phone, MapPin, Star, CheckCircle,
   ChevronRight, MoreHorizontal, Trash2, X, Menu,
   Bed, Bath, Maximize2, Clock, Activity,
@@ -110,69 +111,151 @@ function Sidebar({ active, onNav, open, onClose, agent, user }) {
 function NotificationBell({ userId, onNavToEnquiries }) {
   const [open,   setOpen]   = useState(false)
   const [notifs, setNotifs] = useState([])
+  const [loading, setLoading] = useState(false)
   const unread = notifs.filter(n => !n.is_read).length
-  const ICONS = { general: "🔔", warning: "⚠️", feature: "🚀", announcement: "📢", policy: "📋", personal: "💬" }
-  const load = () => {
-    if (!userId) return
-    supabase.from("notifications").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(20).then(({ data }) => setNotifs(data || []))
+
+  const TYPE_CONFIG = {
+    personal:     { icon: "💬", color: "#0097B2", bg: "#e0f7fa" },
+    general:      { icon: "🔔", color: "#64748b", bg: "#f1f5f9" },
+    warning:      { icon: "⚠️", color: "#f59e0b", bg: "#fffbeb" },
+    feature:      { icon: "🚀", color: "#8b5cf6", bg: "#f5f3ff" },
+    announcement: { icon: "📢", color: "#ec4899", bg: "#fdf2f8" },
+    policy:       { icon: "📋", color: "#64748b", bg: "#f8fafc" },
   }
+
+  const load = async () => {
+    if (!userId) return
+    const { data } = await supabase.from("notifications")
+      .select("*").eq("user_id", userId)
+      .order("created_at", { ascending: false }).limit(20)
+    setNotifs(data || [])
+  }
+
   useEffect(() => { load() }, [userId])
   useEffect(() => {
     if (!userId) return
     const interval = setInterval(load, 10000)
     return () => clearInterval(interval)
   }, [userId])
-  const toggle = () => { setOpen(p => !p); load() }
+
+  const toggle = () => { setOpen(p => !p); if (!open) load() }
+
   const markRead = async (id) => {
     await supabase.from("notifications").update({ is_read: true }).eq("id", id)
     setNotifs(p => p.map(n => n.id === id ? { ...n, is_read: true } : n))
   }
+
   const markAllRead = async () => {
     const ids = notifs.filter(n => !n.is_read).map(n => n.id)
     if (!ids.length) return
     await supabase.from("notifications").update({ is_read: true }).in("id", ids)
     setNotifs(p => p.map(n => ({ ...n, is_read: true })))
   }
+
+  const formatTime = (ts) => {
+    const d = new Date(ts)
+    const now = new Date()
+    const diff = Math.floor((now - d) / 1000)
+    if (diff < 60)   return "just now"
+    if (diff < 3600) return Math.floor(diff/60) + "m ago"
+    if (diff < 86400) return Math.floor(diff/3600) + "h ago"
+    return d.toLocaleDateString("en-NG", { day: "numeric", month: "short" })
+  }
+
   return (
     <div style={{ position: "relative" }}>
-      <button onClick={toggle} style={{ position: "relative", width: 40, height: 40, borderRadius: 10, background: "#f8fafc", border: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-        <Bell size={17} color="#64748b" />
-        {unread > 0 && <span style={{ position: "absolute", top: 6, right: 6, width: 8, height: 8, borderRadius: "50%", background: "#ef4444", border: "2px solid #fff" }} />}
+      {/* Bell button */}
+      <button onClick={toggle}
+        style={{ position: "relative", width: 40, height: 40, borderRadius: 12, background: open ? T + "12" : "#f8fafc", border: `1.5px solid ${open ? T + "40" : "#e2e8f0"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.2s" }}>
+        <Bell size={17} color={open ? T : "#64748b"} />
+        {unread > 0 && (
+          <span style={{ position: "absolute", top: -4, right: -4, minWidth: 18, height: 18, borderRadius: 9, background: "#ef4444", border: "2px solid #fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 900, color: "#fff", padding: "0 3px", animation: "popIn 0.3s ease" }}>
+            {unread > 9 ? "9+" : unread}
+          </span>
+        )}
       </button>
+
       {open && (
         <>
-          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 10 }} />
-          <div style={{ position: "fixed", top: 70, right: 8, left: 8, zIndex: 200, maxWidth: 380, marginLeft: "auto", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 18, boxShadow: "0 16px 48px rgba(0,0,0,0.15)", overflow: "hidden", animation: "fadeUp 0.2s ease" }}>
-            <div style={{ padding: "14px 16px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={{ fontSize: 14, fontWeight: 800, color: "#0d1f2d" }}>Notifications {unread > 0 && <span style={{ background: "#ef4444", color: "#fff", fontSize: 10, fontWeight: 800, padding: "2px 6px", borderRadius: 50, marginLeft: 4 }}>{unread}</span>}</span>
-              {unread > 0 && <button onClick={markAllRead} style={{ fontSize: 11, color: T, fontWeight: 700, background: "none", border: "none", cursor: "pointer" }}>Mark all read</button>}
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 190 }} />
+          <div style={{ position: "fixed", top: 70, right: 8, left: 8, zIndex: 200, maxWidth: 400, marginLeft: "auto", background: "#fff", borderRadius: 20, boxShadow: "0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05)", overflow: "hidden", animation: "fadeUp 0.2s ease" }}>
+
+            {/* Header */}
+            <div style={{ padding: "16px 18px 12px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 10, background: T + "12", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Bell size={15} color={T} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 900, color: "#0d1f2d", letterSpacing: "-0.02em" }}>Notifications</div>
+                  {unread > 0 && <div style={{ fontSize: 11, color: "#94a3b8" }}>{unread} unread</div>}
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                {unread > 0 && (
+                  <button onClick={markAllRead}
+                    style={{ fontSize: 11, color: T, fontWeight: 800, background: T + "10", border: "none", cursor: "pointer", padding: "5px 10px", borderRadius: 8 }}>
+                    Mark all read
+                  </button>
+                )}
+                <button onClick={() => setOpen(false)}
+                  style={{ width: 28, height: 28, borderRadius: 8, background: "#f8fafc", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                  <X size={14} color="#64748b" />
+                </button>
+              </div>
             </div>
-            <div style={{ maxHeight: 360, overflowY: "auto" }}>
-              {notifs.length === 0
-                ? <div style={{ padding: "32px 20px", textAlign: "center", color: "#94a3b8" }}><Bell size={28} color="#e2e8f0" style={{ marginBottom: 8 }} /><p style={{ margin: 0, fontSize: 13 }}>No notifications yet</p></div>
-                : notifs.map(n => {
-                  const isEnquiry = n.title?.toLowerCase().includes("message") || n.title?.toLowerCase().includes("enquir") || n.title?.toLowerCase().includes("buyer") || n.title?.toLowerCase().includes("sent you")
-                  const enquiryId = n.link || null
-                  return (
-                    <div key={n.id} style={{ padding: "12px 16px", borderBottom: "1px solid #f8fafc", background: n.is_read ? "#fff" : T + "06" }}>
-                      <div style={{ display: "flex", gap: 10, cursor: "pointer" }} onClick={() => markRead(n.id)}>
-                        <span style={{ fontSize: 18, flexShrink: 0 }}>{ICONS[n.type] || "🔔"}</span>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: "#0d1f2d", marginBottom: 2 }}>{n.title}</div>
-                          <div style={{ fontSize: 12, color: "#64748b", lineHeight: 1.5, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{n.body || n.message || ""}</div>
-                          <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>{new Date(n.created_at).toLocaleDateString()}</div>
-                        </div>
-                        {!n.is_read && <div style={{ width: 7, height: 7, borderRadius: "50%", background: T, flexShrink: 0, marginTop: 4 }} />}
+
+            {/* Notifications list */}
+            <div style={{ maxHeight: 420, overflowY: "auto" }}>
+              {notifs.length === 0 ? (
+                <div style={{ padding: "48px 24px", textAlign: "center" }}>
+                  <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
+                    <Bell size={24} color="#cbd5e1" />
+                  </div>
+                  <p style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#64748b" }}>All caught up!</p>
+                  <p style={{ margin: 0, fontSize: 12, color: "#94a3b8" }}>No notifications yet</p>
+                </div>
+              ) : notifs.map((n, i) => {
+                const tc = TYPE_CONFIG[n.type] || TYPE_CONFIG.general
+                const isEnquiry = n.type === "personal" || n.title?.toLowerCase().includes("enquir") || n.title?.toLowerCase().includes("sent you")
+                const enquiryId = n.link || null
+                return (
+                  <div key={n.id}
+                    style={{ padding: "14px 18px", borderBottom: i < notifs.length - 1 ? "1px solid #f8fafc" : "none", background: n.is_read ? "#fff" : T + "05", cursor: "pointer", transition: "background 0.15s" }}
+                    onClick={() => markRead(n.id)}
+                    onMouseEnter={e => { e.currentTarget.style.background = "#f8fafc" }}
+                    onMouseLeave={e => { e.currentTarget.style.background = n.is_read ? "#fff" : T + "05" }}>
+                    <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                      {/* Icon */}
+                      <div style={{ width: 38, height: 38, borderRadius: 12, background: tc.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
+                        {tc.icon}
                       </div>
-                      {isEnquiry && onNavToEnquiries && (
-                        <button onClick={() => { markRead(n.id); setOpen(false); onNavToEnquiries(enquiryId) }}
-                          style={{ marginTop: 8, marginLeft: 28, display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 8, background: T, border: "none", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                          Open Chat →
-                        </button>
+                      {/* Content */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 3 }}>
+                          <span style={{ fontSize: 13, fontWeight: n.is_read ? 600 : 800, color: "#0d1f2d", lineHeight: 1.4 }}>{n.title}</span>
+                          <span style={{ fontSize: 10, color: "#94a3b8", whiteSpace: "nowrap", flexShrink: 0 }}>{formatTime(n.created_at)}</span>
+                        </div>
+                        {(n.body || n.message) && (
+                          <p style={{ margin: "0 0 8px", fontSize: 12, color: "#64748b", lineHeight: 1.5, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+                            {n.body || n.message}
+                          </p>
+                        )}
+                        {isEnquiry && onNavToEnquiries && (
+                          <button onClick={e => { e.stopPropagation(); markRead(n.id); setOpen(false); onNavToEnquiries(enquiryId) }}
+                            style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 8, background: T, border: "none", color: "#fff", fontSize: 11, fontWeight: 800, cursor: "pointer" }}>
+                            Open Chat →
+                          </button>
+                        )}
+                      </div>
+                      {/* Unread dot */}
+                      {!n.is_read && (
+                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: T, flexShrink: 0, marginTop: 5 }} />
                       )}
                     </div>
-                  )
-                })}
+                  </div>
+                )
+              })}
             </div>
           </div>
         </>
@@ -865,11 +948,28 @@ function Listings({ listings, loading, onRefresh }) {
         </div>
       </div>
       {loading ? <LoadingCard /> : filtered.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "60px 20px" }}>
-          <Building2 size={48} color="#cbd5e1" style={{ marginBottom: 16 }} />
-          <h3 style={{ margin: "0 0 8px", color: "#0d1f2d", fontSize: 18, fontWeight: 800 }}>{listings.length === 0 ? "No listings yet" : "No listings found"}</h3>
-          <p style={{ color: "#94a3b8", margin: "0 0 20px" }}>{listings.length === 0 ? "Add your first property to get started" : "Try a different filter"}</p>
-          {listings.length === 0 && <Link href="/dashboard/agent/add-listing" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "11px 24px", borderRadius: 50, background: T, color: "#fff", textDecoration: "none", fontSize: 14, fontWeight: 800 }}><Plus size={15} /> Add Listing</Link>}
+        <div style={{ textAlign: "center", padding: "60px 24px" }}>
+          <div style={{ width: 80, height: 80, borderRadius: 24, background: listings.length === 0 ? T + "12" : "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+            <Building2 size={36} color={listings.length === 0 ? T : "#cbd5e1"} />
+          </div>
+          <h3 style={{ margin: "0 0 8px", color: "#0d1f2d", fontSize: 19, fontWeight: 900, letterSpacing: "-0.02em" }}>
+            {listings.length === 0 ? "No listings yet" : "No listings found"}
+          </h3>
+          <p style={{ color: "#94a3b8", margin: "0 0 24px", fontSize: 14, lineHeight: 1.6, maxWidth: 280, marginLeft: "auto", marginRight: "auto" }}>
+            {listings.length === 0
+              ? "Start by adding your first property. It takes less than 5 minutes."
+              : "Try clearing your search or filters to see all your listings."}
+          </p>
+          {listings.length === 0
+            ? <Link href="/dashboard/agent/add-listing"
+                style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "13px 28px", borderRadius: 50, background: T, color: "#fff", textDecoration: "none", fontSize: 14, fontWeight: 800, boxShadow: "0 4px 16px rgba(0,151,178,0.35)" }}>
+                <Plus size={16} /> Add Your First Listing
+              </Link>
+            : <button onClick={() => setSearch("")}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "11px 24px", borderRadius: 50, background: "#f1f5f9", color: "#64748b", border: "none", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                Clear filters
+              </button>
+          }
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -931,26 +1031,65 @@ function Listings({ listings, loading, onRefresh }) {
 
 // ─── Enquiries Tab ────────────────────────────────────────────────────────────
 function Enquiries({ enquiries, loading, onRefresh, targetEnquiryId, onClearTarget }) {
-  const [filter,      setFilter]      = useState("all")
-  const [selected,    setSelected]    = useState(null)
-  const [messages,    setMessages]    = useState([])
-  const [reply,       setReply]       = useState("")
-  const [sending,     setSending]     = useState(false)
-  const [loadingMsgs, setLoadingMsgs] = useState(false)
+  const { showToast } = useToast()
+  const [filter,        setFilter]        = useState("all")
+  const [selected,      setSelected]      = useState(null)
+  const [messages,      setMessages]      = useState([])
+  const [reply,         setReply]         = useState("")
+  const [sending,       setSending]       = useState(false)
+  const [loadingMsgs,   setLoadingMsgs]   = useState(false)
+  const [isTyping,      setIsTyping]      = useState(false)
+  const [showTemplates, setShowTemplates] = useState(false)
+  const [unreadCounts,  setUnreadCounts]  = useState({})
   const bottomRef    = useRef(null)
+  const textareaRef  = useRef(null)
   const prevCountRef = useRef(0)
+  const typingTimer  = useRef(null)
+
+  const TEMPLATES = [
+    "Thank you for your interest! The property is still available. When would you like to schedule a viewing?",
+    "Please call me directly so we can discuss further details about this property.",
+    "Yes, the price is negotiable. What is your budget? Let us see what we can work out.",
+    "I will send you more photos and details about this property shortly.",
+    "The property has been taken. However, I have similar properties available that may interest you.",
+    "Good day! Please share a convenient time for us to visit the property together.",
+  ]
+
   const filtered = enquiries.filter(e => filter === "all" || e.status === filter)
   const active   = selected ? enquiries.find(e => e.id === selected) : null
 
+  const filterCounts = {
+    all:     enquiries.length,
+    new:     enquiries.filter(e => e.status === "new").length,
+    replied: enquiries.filter(e => e.status === "replied").length,
+    closed:  enquiries.filter(e => e.status === "closed").length,
+  }
+
+  // Auto-navigate to target enquiry from notification
   useEffect(() => {
     if (!targetEnquiryId) return
     const found = enquiries.find(e => e.id === targetEnquiryId)
     if (found) { setSelected(targetEnquiryId); if (onClearTarget) onClearTarget() }
   }, [targetEnquiryId, enquiries])
 
+  // Load unread counts in a single query
+  useEffect(() => {
+    const load = async () => {
+      if (!enquiries.length) return
+      const ids = enquiries.map(e => e.id)
+      const { data } = await supabase.from("enquiry_messages")
+        .select("enquiry_id").in("enquiry_id", ids).eq("sender", "user").eq("is_read", false)
+      const counts = {}
+      if (data) data.forEach(m => { counts[m.enquiry_id] = (counts[m.enquiry_id] || 0) + 1 })
+      setUnreadCounts(counts)
+    }
+    load()
+  }, [enquiries])
+
   const loadMessages = async (id, showLoader) => {
     if (showLoader) setLoadingMsgs(true)
-    const { data } = await supabase.from("enquiry_messages").select("*").eq("enquiry_id", id).order("created_at", { ascending: true })
+    const { data } = await supabase.from("enquiry_messages")
+      .select("*").eq("enquiry_id", id).order("created_at", { ascending: true })
     const msgs = data || []
     if (showLoader) setLoadingMsgs(false)
     if (msgs.length !== prevCountRef.current) {
@@ -958,6 +1097,9 @@ function Enquiries({ enquiries, loading, onRefresh, targetEnquiryId, onClearTarg
       setMessages(msgs)
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 80)
     }
+    await supabase.from("enquiry_messages").update({ is_read: true })
+      .eq("enquiry_id", id).eq("sender", "user")
+    setUnreadCounts(prev => ({ ...prev, [id]: 0 }))
   }
 
   useEffect(() => {
@@ -968,112 +1110,333 @@ function Enquiries({ enquiries, loading, onRefresh, targetEnquiryId, onClearTarg
     return () => clearInterval(interval)
   }, [selected])
 
-  const sendReply = async () => {
-    if (!reply.trim() || !active) return
-    setSending(true)
-    await supabase.from("enquiry_messages").insert({ enquiry_id: active.id, sender: "agent", message: reply.trim() })
-    await supabase.from("enquiries").update({ status: "replied", agent_reply: reply.trim(), replied_at: new Date().toISOString() }).eq("id", active.id)
-    if (active.user_id) {
-      await supabase.from("notifications").insert({ user_id: active.user_id, type: "personal", title: "Agent replied to your enquiry", body: "Your agent replied: " + reply.trim().slice(0, 80) + (reply.trim().length > 80 ? "…" : "") })
+  const handleReplyChange = (val) => {
+    setReply(val)
+    setIsTyping(val.length > 0)
+    clearTimeout(typingTimer.current)
+    typingTimer.current = setTimeout(() => setIsTyping(false), 2000)
+    // Auto resize textarea
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto"
+      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + "px"
     }
-    setReply(""); setSending(false)
+  }
+
+  const sendReply = async () => {
+    if (!reply.trim() || !active || sending) return
+    setSending(true)
+    setShowTemplates(false)
+    const msg = reply.trim()
+    setReply("")
+    if (textareaRef.current) textareaRef.current.style.height = "auto"
+    setIsTyping(false)
+    await supabase.from("enquiry_messages").insert({ enquiry_id: active.id, sender: "agent", message: msg, is_read: false })
+    await supabase.from("enquiries").update({ status: "replied", agent_reply: msg, replied_at: new Date().toISOString() }).eq("id", active.id)
+    if (active.user_id) {
+      await supabase.from("notifications").insert({
+        user_id: active.user_id, type: "personal",
+        title: "Agent replied to your enquiry",
+        body: msg.slice(0, 80) + (msg.length > 80 ? "…" : ""),
+      })
+    }
+    setSending(false)
+    showToast("✅ Reply sent!", "sent")
     await loadMessages(active.id)
     onRefresh()
   }
 
-  const statusConfig = {
-    new:     { bg: "#ef444412", color: "#ef4444", label: "New"     },
-    replied: { bg: "#10b98112", color: "#059669", label: "Replied" },
-    closed:  { bg: "#94a3b812", color: "#94a3b8", label: "Closed"  },
+  const groupByDate = (msgs) => {
+    const groups = {}
+    msgs.forEach(msg => {
+      const d = new Date(msg.created_at)
+      const today = new Date()
+      const yest  = new Date(today); yest.setDate(yest.getDate() - 1)
+      const label = d.toDateString() === today.toDateString() ? "Today"
+        : d.toDateString() === yest.toDateString() ? "Yesterday"
+        : d.toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long" })
+      if (!groups[label]) groups[label] = []
+      groups[label].push(msg)
+    })
+    return groups
   }
+
+  const formatTime = (ts) => new Date(ts).toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" })
+
+  const statusConfig = {
+    new:     { bg: "#fef2f2", color: "#dc2626", dot: "#ef4444", label: "New"     },
+    replied: { bg: "#f0fdf4", color: "#16a34a", dot: "#22c55e", label: "Replied" },
+    closed:  { bg: "#f8fafc", color: "#64748b", dot: "#94a3b8", label: "Closed"  },
+  }
+
+  const msgGroups = groupByDate(messages)
+  const totalUnread = Object.values(unreadCounts).reduce((a, b) => a + b, 0)
 
   return (
     <div>
-      <h2 style={{ margin: "0 0 20px", fontSize: 20, fontWeight: 900, color: "#0d1f2d", letterSpacing: "-0.02em" }}>Enquiries ({enquiries.length})</h2>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }} className="enquiry-layout">
-        <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #f1f5f9", overflow: "hidden" }} className={selected ? "hide-on-mobile" : ""}>
-          <div style={{ padding: "16px 18px 12px", borderBottom: "1px solid #f8fafc" }}>
-            <div style={{ display: "flex", background: "#f1f5f9", borderRadius: 10, padding: 3, gap: 2 }}>
+      {/* Page header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+        <div>
+          <h2 style={{ margin: "0 0 2px", fontSize: 22, fontWeight: 900, color: "#0d1f2d", letterSpacing: "-0.03em" }}>Enquiries</h2>
+          <p style={{ margin: 0, fontSize: 13, color: "#94a3b8" }}>{enquiries.length} total{totalUnread > 0 ? ` · ${totalUnread} unread` : ""}</p>
+        </div>
+        <button onClick={onRefresh} style={{ width: 36, height: 36, borderRadius: 10, background: "#f1f5f9", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+          <RefreshCw size={15} color="#64748b" />
+        </button>
+      </div>
+
+      <div style={{ display: "grid", gap: 16 }} className="enquiry-layout">
+
+        {/* ── LEFT: Enquiry List ── */}
+        <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #f1f5f9", overflow: "hidden", display: "flex", flexDirection: "column" }} className={selected ? "hide-on-mobile" : ""}>
+          {/* Filter tabs */}
+          <div style={{ padding: "12px 16px", borderBottom: "1px solid #f8fafc", flexShrink: 0 }}>
+            <div style={{ display: "flex", background: "#f8fafc", borderRadius: 12, padding: 3, gap: 2 }}>
               {["all","new","replied","closed"].map(f => (
-                <button key={f} onClick={() => setFilter(f)} style={{ flex: 1, padding: "6px 8px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, background: filter === f ? "#fff" : "transparent", color: filter === f ? "#0d1f2d" : "#94a3b8", boxShadow: filter === f ? "0 1px 6px rgba(0,0,0,0.07)" : "none", transition: "all 0.2s", textTransform: "capitalize" }}>
-                  {f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
+                <button key={f} onClick={() => setFilter(f)}
+                  style={{ flex: 1, padding: "7px 4px", borderRadius: 9, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 700, background: filter === f ? "#fff" : "transparent", color: filter === f ? "#0d1f2d" : "#94a3b8", boxShadow: filter === f ? "0 1px 4px rgba(0,0,0,0.08)" : "none", transition: "all 0.15s", position: "relative" }}>
+                  {f.charAt(0).toUpperCase() + f.slice(1)}
+                  {filterCounts[f] > 0 && f !== "all" && (
+                    <span style={{ marginLeft: 3, fontSize: 10, opacity: 0.7 }}>({filterCounts[f]})</span>
+                  )}
                 </button>
               ))}
             </div>
           </div>
-          {loading ? <LoadingCard /> : filtered.length === 0
-            ? <div style={{ padding: "40px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14 }}>No enquiries yet</div>
-            : <div style={{ overflowY: "auto", maxHeight: 520 }}>
-                {filtered.map(e => {
-                  const sc = statusConfig[e.status] || statusConfig.new
-                  const isActive = selected === e.id
-                  return (
-                    <button key={e.id} onClick={() => setSelected(e.id)} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "16px 18px", border: "none", background: isActive ? T + "08" : "#fff", cursor: "pointer", width: "100%", textAlign: "left", borderBottom: "1px solid #f8fafc", transition: "background 0.15s", borderLeft: isActive ? "3px solid " + T : "3px solid transparent" }}>
-                      <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 800, color: T, flexShrink: 0 }}>{(e.sender_name || e.users?.full_name || "?").charAt(0)}</div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 3 }}>
-                          <span style={{ fontSize: 13, fontWeight: 800, color: "#0d1f2d" }}>{e.sender_name || e.users?.full_name || "Anonymous"}</span>
-                          <span style={{ fontSize: 10, color: "#94a3b8", whiteSpace: "nowrap" }}>{new Date(e.created_at).toLocaleDateString()}</span>
-                        </div>
-                        <div style={{ fontSize: 11, color: T, fontWeight: 600, marginBottom: 3 }}>{e.listings?.title || "Property"}</div>
-                        <p style={{ margin: 0, fontSize: 12, color: "#64748b", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", lineHeight: 1.4 }}>{e.message}</p>
-                        <div style={{ marginTop: 6 }}><span style={{ padding: "2px 8px", borderRadius: 50, background: sc.bg, color: sc.color, fontSize: 10, fontWeight: 800 }}>{sc.label}</span></div>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>}
-        </div>
-        <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #f1f5f9", overflow: "hidden", display: "flex", flexDirection: "column", minHeight: 480 }}>
-          {active ? (
-            <>
-              <div style={{ padding: "18px 22px", borderBottom: "1px solid #f8fafc", flexShrink: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                  <button onClick={() => setSelected(null)} className="back-btn-mobile" style={{ width: 32, height: 32, borderRadius: 8, background: "#f1f5f9", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
-                  <div style={{ width: 44, height: 44, borderRadius: "50%", background: T + "18", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 800, color: T, flexShrink: 0 }}>{(active.sender_name || active.users?.full_name || "?").charAt(0)}</div>
-                  <div><div style={{ fontSize: 15, fontWeight: 800, color: "#0d1f2d" }}>{active.sender_name || active.users?.full_name || "Anonymous"}</div><div style={{ fontSize: 12, color: "#94a3b8" }}>{active.listings?.title || "General enquiry"}</div></div>
+
+          {/* List */}
+          <div style={{ overflowY: "auto", flex: 1, maxHeight: 540 }}>
+            {loading ? <LoadingCard /> : filtered.length === 0
+              ? (
+                <div style={{ padding: "48px 20px", textAlign: "center" }}>
+                  <MessageCircle size={36} color="#e2e8f0" style={{ marginBottom: 12 }} />
+                  <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#94a3b8" }}>No {filter !== "all" ? filter : ""} enquiries</p>
                 </div>
-                {(active.sender_phone || active.users?.phone) && (
-                  <a href={"tel:" + (active.sender_phone || active.users?.phone)} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "7px 14px", borderRadius: 10, background: T, color: "#fff", textDecoration: "none", fontSize: 12, fontWeight: 700 }}><Phone size={13} /> {active.sender_phone || active.users?.phone}</a>
-                )}
-              </div>
-              <div style={{ flex: 1, padding: "16px 20px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, minHeight: 0 }}>
-                {loadingMsgs ? (
-                  <div style={{ display: "flex", justifyContent: "center", padding: "20px" }}><Loader size={20} color={T} style={{ animation: "spin 1s linear infinite" }} /></div>
-                ) : messages.length === 0 ? (
-                  <div style={{ background: "#f8fafc", borderRadius: "16px 16px 16px 4px", padding: "14px 18px", maxWidth: "85%", alignSelf: "flex-start" }}>
-                    <p style={{ margin: 0, fontSize: 14, color: "#374151", lineHeight: 1.7 }}>{active.message}</p>
-                    <span style={{ fontSize: 11, color: "#94a3b8", display: "block", marginTop: 6 }}>{new Date(active.created_at).toLocaleDateString()}</span>
-                  </div>
-                ) : messages.map((msg, i) => {
-                  const isAgent = msg.sender === "agent"
-                  return (
-                    <div key={msg.id} style={{ display: "flex", justifyContent: isAgent ? "flex-end" : "flex-start" }}>
-                      <div style={{ background: isAgent ? T : "#f8fafc", borderRadius: isAgent ? "16px 16px 4px 16px" : "16px 16px 16px 4px", padding: "12px 16px", maxWidth: "80%" }}>
-                        <p style={{ margin: 0, fontSize: 14, color: isAgent ? "#fff" : "#374151", lineHeight: 1.6 }}>{msg.message}</p>
-                        <span style={{ fontSize: 10, color: isAgent ? "rgba(255,255,255,0.6)" : "#94a3b8", display: "block", marginTop: 5 }}>{new Date(msg.created_at).toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" })}</span>
+              )
+              : filtered.map(e => {
+                const sc     = statusConfig[e.status] || statusConfig.new
+                const isActive = selected === e.id
+                const unread   = unreadCounts[e.id] || 0
+                const initial  = (e.sender_name || "?").charAt(0).toUpperCase()
+                const timeStr  = new Date(e.created_at).toLocaleDateString("en-NG", { day: "numeric", month: "short" })
+                return (
+                  <button key={e.id} onClick={() => setSelected(e.id)}
+                    style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 16px", border: "none", width: "100%", textAlign: "left", cursor: "pointer", transition: "background 0.12s", borderBottom: "1px solid #f8fafc", borderLeft: `3px solid ${isActive ? T : unread > 0 ? "#ef4444" : "transparent"}`, background: isActive ? T + "06" : unread > 0 ? "#fffbfb" : "#fff" }}>
+                    {/* Avatar */}
+                    <div style={{ position: "relative", flexShrink: 0 }}>
+                      <div style={{ width: 44, height: 44, borderRadius: "50%", background: `linear-gradient(135deg, ${T}30, ${T}15)`, border: `2px solid ${T}25`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, fontWeight: 900, color: T }}>
+                        {initial}
+                      </div>
+                      {/* Online dot placeholder */}
+                      <div style={{ position: "absolute", bottom: 1, right: 1, width: 10, height: 10, borderRadius: "50%", background: sc.dot, border: "2px solid #fff" }} />
+                      {unread > 0 && (
+                        <div style={{ position: "absolute", top: -3, right: -3, minWidth: 18, height: 18, borderRadius: 9, background: "#ef4444", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 900, color: "#fff", border: "2px solid #fff", padding: "0 3px" }}>
+                          {unread > 9 ? "9+" : unread}
+                        </div>
+                      )}
+                    </div>
+                    {/* Content */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 2 }}>
+                        <span style={{ fontSize: 13, fontWeight: unread > 0 ? 900 : 700, color: "#0d1f2d", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", maxWidth: "70%" }}>
+                          {e.sender_name || "Anonymous"}
+                        </span>
+                        <span style={{ fontSize: 10, color: "#b0bec5", flexShrink: 0 }}>{timeStr}</span>
+                      </div>
+                      {e.listings?.title && (
+                        <div style={{ fontSize: 11, color: T, fontWeight: 700, marginBottom: 3, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
+                          🏠 {e.listings.title}
+                        </div>
+                      )}
+                      <p style={{ margin: "0 0 6px", fontSize: 12, color: unread > 0 ? "#374151" : "#94a3b8", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", fontWeight: unread > 0 ? 600 : 400, lineHeight: 1.4 }}>
+                        {e.message}
+                      </p>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 50, background: sc.bg, color: sc.color, fontSize: 10, fontWeight: 800 }}>
+                          <span style={{ width: 5, height: 5, borderRadius: "50%", background: sc.dot, display: "inline-block" }} />
+                          {sc.label}
+                        </span>
+                        {e.sender_phone && <span style={{ fontSize: 10, color: "#94a3b8" }}>📞 {e.sender_phone}</span>}
                       </div>
                     </div>
-                  )
-                })}
-                <div ref={bottomRef} />
+                  </button>
+                )
+              })
+            }
+          </div>
+        </div>
+
+        {/* ── RIGHT: Chat Window ── */}
+        <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #f1f5f9", display: "flex", flexDirection: "column", overflow: "hidden", minHeight: 540 }}>
+          {active ? (
+            <>
+              {/* Chat header */}
+              <div style={{ padding: "14px 18px", borderBottom: "1px solid #f1f5f9", background: "#fff", flexShrink: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  {/* Back button mobile */}
+                  <button onClick={() => setSelected(null)} className="back-btn-mobile"
+                    style={{ width: 34, height: 34, borderRadius: 10, background: "#f8fafc", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+                    <ArrowLeft size={16} color="#64748b" />
+                  </button>
+                  {/* Avatar */}
+                  <div style={{ width: 42, height: 42, borderRadius: "50%", background: `linear-gradient(135deg, ${T}30, ${T}15)`, border: `2px solid ${T}25`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 900, color: T, flexShrink: 0 }}>
+                    {(active.sender_name || "?").charAt(0).toUpperCase()}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: "#0d1f2d" }}>{active.sender_name || "Anonymous"}</div>
+                    <div style={{ fontSize: 11, color: "#94a3b8", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
+                      {active.listings?.title ? `🏠 ${active.listings.title}` : "General enquiry"}
+                    </div>
+                  </div>
+                  {/* Action buttons */}
+                  <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                    {active.sender_phone && (
+                      <a href={`tel:${active.sender_phone}`}
+                        style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 50, background: "#f0fdf4", color: "#16a34a", textDecoration: "none", fontSize: 12, fontWeight: 800, border: "1px solid #bbf7d0" }}>
+                        <Phone size={12} /> Call
+                      </a>
+                    )}
+                    {active.sender_phone && (
+                      <a href={`https://wa.me/${active.sender_phone.replace(/\D/g,"")}`} target="_blank" rel="noopener noreferrer"
+                        style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 50, background: "#f0fdf4", color: "#16a34a", textDecoration: "none", fontSize: 12, fontWeight: 800, border: "1px solid #bbf7d0" }}>
+                        WhatsApp
+                      </a>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div style={{ padding: "14px 20px", borderTop: "1px solid #f8fafc", flexShrink: 0 }}>
-                <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
-                  <textarea value={reply} onChange={e => setReply(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendReply() } }}
-                    placeholder="Type a reply… (Enter to send, Shift+Enter for new line)" rows={2}
-                    style={{ flex: 1, padding: "11px 14px", borderRadius: 12, border: "1.5px solid #e2e8f0", fontSize: 14, color: "#0d1f2d", fontFamily: "inherit", outline: "none", resize: "none", background: "#f8fafc" }}
-                    onFocus={e => { e.target.style.borderColor = T; e.target.style.background = "#fff" }} onBlur={e => { e.target.style.borderColor = "#e2e8f0"; e.target.style.background = "#f8fafc" }} />
-                  <button onClick={sendReply} disabled={sending || !reply.trim()} style={{ width: 44, height: 44, borderRadius: 12, background: sending || !reply.trim() ? T + "60" : T, border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: sending || !reply.trim() ? "not-allowed" : "pointer", flexShrink: 0 }}>
-                    {sending ? <Loader size={17} color="#fff" style={{ animation: "spin 1s linear infinite" }} /> : <Send size={17} color="#fff" />}
+
+              {/* Messages */}
+              <div style={{ flex: 1, overflowY: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", background: "#f8fafc", minHeight: 0 }}>
+                {loadingMsgs ? (
+                  <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Loader size={22} color={T} style={{ animation: "spin 1s linear infinite" }} />
+                  </div>
+                ) : (
+                  <>
+                    {/* Initial enquiry message if no chat messages */}
+                    {messages.length === 0 && (
+                      <>
+                        <div style={{ textAlign: "center", margin: "0 0 12px" }}>
+                          <span style={{ fontSize: 11, color: "#94a3b8", background: "#e2e8f0", padding: "3px 14px", borderRadius: 50, fontWeight: 600 }}>
+                            {new Date(active.created_at).toDateString() === new Date().toDateString() ? "Today" : new Date(active.created_at).toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long" })}
+                          </span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 8 }}>
+                          <div style={{ maxWidth: "75%", background: "#fff", borderRadius: "4px 18px 18px 18px", padding: "12px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
+                            <p style={{ margin: "0 0 6px", fontSize: 14, color: "#374151", lineHeight: 1.7 }}>{active.message}</p>
+                            <span style={{ fontSize: 10, color: "#b0bec5" }}>{formatTime(active.created_at)}</span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Grouped messages */}
+                    {Object.entries(msgGroups).map(([label, msgs]) => (
+                      <div key={label}>
+                        <div style={{ textAlign: "center", margin: "12px 0 10px" }}>
+                          <span style={{ fontSize: 11, color: "#94a3b8", background: "#e2e8f0", padding: "3px 14px", borderRadius: 50, fontWeight: 600 }}>{label}</span>
+                        </div>
+                        {msgs.map((msg, i) => {
+                          const isAgent = msg.sender === "agent"
+                          const showAvatar = !isAgent && (i === 0 || msgs[i-1]?.sender !== "user")
+                          return (
+                            <div key={msg.id} style={{ display: "flex", justifyContent: isAgent ? "flex-end" : "flex-start", marginBottom: 4, alignItems: "flex-end", gap: 6 }}>
+                              {!isAgent && (
+                                <div style={{ width: 28, height: 28, borderRadius: "50%", background: `${T}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, color: T, flexShrink: 0, opacity: showAvatar ? 1 : 0 }}>
+                                  {(active.sender_name || "?").charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              <div style={{ maxWidth: "72%", background: isAgent ? T : "#fff", borderRadius: isAgent ? "18px 4px 18px 18px" : "4px 18px 18px 18px", padding: "10px 14px", boxShadow: "0 1px 4px rgba(0,0,0,0.07)", border: isAgent ? "none" : "1px solid #f1f5f9" }}>
+                                <p style={{ margin: "0 0 5px", fontSize: 14, color: isAgent ? "#fff" : "#374151", lineHeight: 1.6 }}>{msg.message}</p>
+                                <div style={{ display: "flex", alignItems: "center", gap: 4, justifyContent: "flex-end" }}>
+                                  <span style={{ fontSize: 10, color: isAgent ? "rgba(255,255,255,0.6)" : "#b0bec5" }}>{formatTime(msg.created_at)}</span>
+                                  {isAgent && (
+                                    <span style={{ fontSize: 11, color: msg.is_read ? "#93f0ff" : "rgba(255,255,255,0.45)", fontWeight: 700 }}>✓✓</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ))}
+
+                    {/* Typing indicator */}
+                    {isTyping && (
+                      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
+                        <div style={{ background: T + "20", borderRadius: "18px 4px 18px 18px", padding: "8px 14px" }}>
+                          <span style={{ fontSize: 12, color: T, fontWeight: 700, letterSpacing: 2 }}>···</span>
+                        </div>
+                      </div>
+                    )}
+                    <div ref={bottomRef} />
+                  </>
+                )}
+              </div>
+
+              {/* Quick replies */}
+              {showTemplates && (
+                <div style={{ borderTop: "1px solid #f1f5f9", background: "#fff", maxHeight: 200, overflowY: "auto" }}>
+                  <div style={{ padding: "10px 16px 6px", fontSize: 11, fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em" }}>Quick Replies</div>
+                  {TEMPLATES.map((t, i) => (
+                    <button key={i} onClick={() => { setReply(t); setShowTemplates(false); textareaRef.current?.focus() }}
+                      style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 16px", border: "none", borderTop: "1px solid #f8fafc", background: "transparent", cursor: "pointer", fontSize: 13, color: "#374151", lineHeight: 1.5, transition: "background 0.12s" }}
+                      onMouseEnter={e => { e.currentTarget.style.background = T + "08" }}
+                      onMouseLeave={e => { e.currentTarget.style.background = "transparent" }}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Input bar */}
+              <div style={{ padding: "10px 14px", borderTop: "1px solid #f1f5f9", background: "#fff", flexShrink: 0 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+                  {/* Quick reply toggle */}
+                  <button onClick={() => setShowTemplates(p => !p)} title="Quick replies"
+                    style={{ width: 38, height: 38, borderRadius: 12, background: showTemplates ? T + "15" : "#f8fafc", border: `1.5px solid ${showTemplates ? T : "transparent"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, transition: "all 0.2s" }}>
+                    <Zap size={15} color={showTemplates ? T : "#94a3b8"} />
+                  </button>
+
+                  {/* Textarea */}
+                  <div style={{ flex: 1, position: "relative" }}>
+                    <textarea ref={textareaRef} value={reply}
+                      onChange={e => handleReplyChange(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendReply() } }}
+                      placeholder="Type a reply… (Enter to send, Shift+Enter for new line)"
+                      rows={1}
+                      style={{ width: "100%", padding: "10px 14px", borderRadius: 16, border: "1.5px solid #e2e8f0", fontSize: 14, color: "#0d1f2d", fontFamily: "inherit", outline: "none", resize: "none", background: "#f8fafc", boxSizing: "border-box", transition: "border-color 0.2s, background 0.2s", lineHeight: 1.5, minHeight: 42, maxHeight: 120, overflow: "auto" }}
+                      onFocus={e => { e.target.style.borderColor = T; e.target.style.background = "#fff" }}
+                      onBlur={e => { e.target.style.borderColor = "#e2e8f0"; e.target.style.background = "#f8fafc" }}
+                    />
+                    {reply.length > 200 && (
+                      <span style={{ position: "absolute", bottom: 8, right: 10, fontSize: 10, color: reply.length > 450 ? "#ef4444" : "#94a3b8", background: "rgba(255,255,255,0.9)", padding: "1px 4px", borderRadius: 4 }}>
+                        {reply.length}/500
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Send button */}
+                  <button onClick={sendReply} disabled={sending || !reply.trim()}
+                    style={{ width: 42, height: 42, borderRadius: 14, background: sending || !reply.trim() ? "#f1f5f9" : T, border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: sending || !reply.trim() ? "not-allowed" : "pointer", flexShrink: 0, transition: "all 0.2s", transform: reply.trim() && !sending ? "scale(1.05)" : "scale(1)" }}>
+                    {sending
+                      ? <Loader size={16} color={reply.trim() ? "#fff" : "#94a3b8"} style={{ animation: "spin 1s linear infinite" }} />
+                      : <Send size={16} color={reply.trim() ? "#fff" : "#94a3b8"} />
+                    }
                   </button>
                 </div>
               </div>
             </>
           ) : (
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 20px", color: "#94a3b8" }}>
-              <MessageCircle size={48} style={{ marginBottom: 16, opacity: 0.4 }} />
-              <p style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Select an enquiry to view and reply</p>
+            /* Empty state */
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px 24px", textAlign: "center" }}>
+              <div style={{ width: 80, height: 80, borderRadius: "50%", background: T + "10", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
+                <MessageCircle size={36} color={T} style={{ opacity: 0.5 }} />
+              </div>
+              <h3 style={{ margin: "0 0 8px", fontSize: 17, fontWeight: 800, color: "#0d1f2d" }}>Select a conversation</h3>
+              <p style={{ margin: 0, fontSize: 13, color: "#94a3b8", lineHeight: 1.6, maxWidth: 240 }}>
+                Pick an enquiry from the list to view messages and reply to buyers
+              </p>
             </div>
           )}
         </div>
@@ -1481,6 +1844,16 @@ export default function AgentDashboard() {
   const [verifRequest,    setVerifRequest]    = useState(null)
   const [loading,         setLoading]         = useState(true)
 
+  // Silent enquiry refresh — no loading flash
+  const refreshEnquiries = async (agentId) => {
+    const { data: enquiriesData } = await supabase
+      .from("enquiries")
+      .select("*, listings(title), users(full_name, phone)")
+      .eq("agent_id", agentId)
+      .order("created_at", { ascending: false })
+    if (enquiriesData) setEnquiries(enquiriesData)
+  }
+
   const fetchData = async () => {
     setLoading(true)
     // Try getUser first, fall back to getSession for mobile browsers
@@ -1545,7 +1918,7 @@ export default function AgentDashboard() {
     if (tab === "overview")     return <Overview user={user} agent={agent} listings={listings} enquiries={enquiries} verifRequest={verifRequest} onNav={setTab} />
     if (tab === "listings")     return <Listings listings={listings} loading={loading} onRefresh={fetchData} />
     if (tab === "browse")       return <AgentBrowseTab />
-    if (tab === "enquiries")    return <Enquiries enquiries={enquiries} loading={loading} onRefresh={fetchData} targetEnquiryId={targetEnquiryId} onClearTarget={() => setTargetEnquiryId(null)} />
+    if (tab === "enquiries")    return <Enquiries enquiries={enquiries} loading={loading} onRefresh={() => refreshEnquiries(agent?.id)} targetEnquiryId={targetEnquiryId} onClearTarget={() => setTargetEnquiryId(null)} />
     if (tab === "featured")     return <FeatureListingTab agent={agent} user={user} listings={listings} onRefresh={fetchData} />
     if (tab === "verification") return <VerificationTab agent={agent} user={user} verifRequest={verifRequest} onSubmit={fetchData} />
     if (tab === "performance")  return <Performance agent={agent} user={user} listings={listings} />

@@ -1,5 +1,6 @@
 "use client"
 
+import { useToast } from "@/components/Toast"
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
@@ -7,7 +8,7 @@ import { supabase } from "@/lib/supabase"
 import {
   ArrowLeft, MapPin, Bed, Bath, Maximize2, Heart,
   Phone, MessageCircle, CheckCircle, Star, Shield,
-  Eye, Share2, ChevronLeft, ChevronRight, Loader, Flag,
+  Eye, Share2, ChevronLeft, ChevronRight, Loader, Flag, Copy,
   Calendar, Home, Building2, BadgeCheck, Send, Check,
 } from "lucide-react"
 
@@ -21,12 +22,28 @@ function BackButton({ userRole, authReady }) {
   const router = useRouter()
 
   const handleBack = () => {
-    if (window.history.length > 1) { router.back(); return }
-    if (authReady && userRole) {
-      if (userRole === "agent") { router.push("/dashboard/agent"); return }
-      if (userRole === "admin") { router.push("/dashboard/admin"); return }
-      router.push("/dashboard/user"); return
+    const prevPath = sessionStorage.getItem("fwh_prev_path") || ""
+
+    // If user came from dashboard browse tab — go directly there
+    if (prevPath === "/dashboard/user/listings") {
+      sessionStorage.removeItem("fwh_prev_path")
+      router.push("/dashboard/user?tab=listings")
+      return
     }
+    // If user came from listings page — go back (scroll position restored)
+    if (prevPath === "/listings") {
+      sessionStorage.removeItem("fwh_prev_path")
+      router.back()
+      return
+    }
+    // Browser history fallback
+    if (window.history.length > 2) {
+      router.back()
+      return
+    }
+    // No history — fallback by role
+    if (authReady && userRole === "agent") { router.push("/dashboard/agent"); return }
+    if (authReady && userRole === "admin") { router.push("/dashboard/admin"); return }
     router.push("/listings")
   }
 
@@ -88,9 +105,29 @@ function NavBar() {
   )
 }
 
-// ─── Image Gallery ────────────────────────────────────────────────────────────
+// ─── Image Gallery with Lightbox ──────────────────────────────────────────────
 function Gallery({ images }) {
-  const [current, setCurrent] = useState(0)
+  const [current,   setCurrent]   = useState(0)
+  const [lightbox,  setLightbox]  = useState(false)
+  const [touchStart, setTouchStart] = useState(null)
+
+  // Keyboard navigation
+  useEffect(() => {
+    if (!lightbox) return
+    const onKey = (e) => {
+      if (e.key === "ArrowRight") next()
+      if (e.key === "ArrowLeft")  prev()
+      if (e.key === "Escape")     setLightbox(false)
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [lightbox, current])
+
+  // Prevent body scroll when lightbox open
+  useEffect(() => {
+    document.body.style.overflow = lightbox ? "hidden" : ""
+    return () => { document.body.style.overflow = "" }
+  }, [lightbox])
 
   if (!images || images.length === 0) {
     return (
@@ -103,12 +140,27 @@ function Gallery({ images }) {
   const prev = () => setCurrent(i => (i - 1 + images.length) % images.length)
   const next = () => setCurrent(i => (i + 1) % images.length)
 
+  // Touch swipe handlers for lightbox
+  const onTouchStart = (e) => setTouchStart(e.touches[0].clientX)
+  const onTouchEnd   = (e) => {
+    if (touchStart === null) return
+    const diff = touchStart - e.changedTouches[0].clientX
+    if (Math.abs(diff) > 50) diff > 0 ? next() : prev()
+    setTouchStart(null)
+  }
+
   return (
+    <>
     <div style={{ marginBottom: 16 }}>
       <div style={{ position: "relative", borderRadius: 16, overflow: "hidden" }}>
-        <div style={{ height: "clamp(260px,60vw,520px)", background: DARK }}>
+        <div style={{ height: "clamp(260px,60vw,520px)", background: DARK, cursor: "zoom-in" }}
+          onClick={() => setLightbox(true)} title="Click to view fullscreen">
           <img src={images[current].url} alt={"Property photo " + (current + 1)}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.3s" }} />
+          {/* View all photos badge */}
+          <div style={{ position: "absolute", bottom: 50, right: 12, background: "rgba(0,0,0,0.65)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 8, backdropFilter: "blur(4px)", display: "flex", alignItems: "center", gap: 5, pointerEvents: "none" }}>
+            <Eye size={12} /> View all {images.length} photos
+          </div>
         </div>
         {images.length > 1 && (
           <>
@@ -142,12 +194,65 @@ function Gallery({ images }) {
         </div>
       )}
     </div>
+
+    {/* ── Lightbox ── */}
+    {lightbox && (
+      <div
+        style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.97)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}>
+
+        {/* Top bar */}
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, padding: "14px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "linear-gradient(to bottom, rgba(0,0,0,0.7), transparent)", zIndex: 10 }}>
+          <span style={{ color: "rgba(255,255,255,0.8)", fontSize: 13, fontWeight: 700 }}>
+            {current + 1} / {images.length}
+          </span>
+          <button onClick={() => setLightbox(false)}
+            style={{ width: 38, height: 38, borderRadius: "50%", background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(4px)" }}>
+            ✕
+          </button>
+        </div>
+
+        {/* Main image */}
+        <img
+          src={images[current].url}
+          alt={"Photo " + (current + 1)}
+          style={{ maxWidth: "100%", maxHeight: "80vh", objectFit: "contain", userSelect: "none" }}
+        />
+
+        {/* Prev / Next */}
+        {images.length > 1 && (
+          <>
+            <button onClick={prev}
+              style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,0.15)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", backdropFilter: "blur(4px)" }}>
+              <ChevronLeft size={22} color="#fff" />
+            </button>
+            <button onClick={next}
+              style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,0.15)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", backdropFilter: "blur(4px)" }}>
+              <ChevronRight size={22} color="#fff" />
+            </button>
+          </>
+        )}
+
+        {/* Bottom thumbnail strip */}
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "12px 16px", background: "linear-gradient(to top, rgba(0,0,0,0.8), transparent)", display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", justifyContent: "center" }}>
+          {images.map((img, i) => (
+            <button key={i} onClick={() => setCurrent(i)}
+              style={{ width: 54, height: 40, flexShrink: 0, borderRadius: 8, overflow: "hidden", border: i === current ? "2px solid #0097B2" : "2px solid rgba(255,255,255,0.2)", cursor: "pointer", padding: 0, transition: "border-color 0.2s", opacity: i === current ? 1 : 0.6 }}>
+              <img src={img.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            </button>
+          ))}
+        </div>
+      </div>
+    )}
+    </>
   )
 }
 
 // ─── Enquiry Form ─────────────────────────────────────────────────────────────
 function EnquiryForm({ listing, agent }) {
   const router = useRouter()
+  const { showToast } = useToast()
   const [authUser, setAuthUser] = useState(null)
   const [userData, setUserData] = useState(null)
   const [message,  setMessage]  = useState("Hello, I am interested in " + (listing?.title || "this property") + ". Please get in touch with me.")
@@ -197,35 +302,10 @@ function EnquiryForm({ listing, agent }) {
         })
       }
     }
-    // Send email notification to agent
-    try {
-      const { data: agentUser } = await supabase
-        .from("agents")
-        .select("user_id, users(email, full_name)")
-        .eq("id", listing.agent_id)
-        .single()
-
-      const agentEmail    = agentUser?.users?.email
-      const agentFullName = agentUser?.users?.full_name
-
-      if (agentEmail) {
-        fetch("/api/notify-agent", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            agentEmail,
-            agentName:    agentFullName?.split(" ")[0] || "Agent",
-            buyerName:    userData?.full_name || authUser.email,
-            buyerPhone:   phone || userData?.phone || "",
-            listingTitle: listing.title,
-            message,
-            enquiryId:    enquiryInserted?.id,
-          }),
-        }).catch(() => {})
-      }
-    } catch(e) {} // Never block the enquiry if email fails
+    // Email notifications will be enabled once domain is verified on Resend
 
     setSending(false); setSent(true)
+    showToast("Enquiry sent! Agent will reply soon.", "sent")
   }
 
   const inp = { width: "100%", padding: "11px 13px", borderRadius: 11, border: "1.5px solid #e2e8f0", fontSize: 14, color: "#0d1f2d", fontFamily: "inherit", outline: "none", background: "#f8fafc", boxSizing: "border-box", transition: "border-color 0.2s" }
@@ -624,15 +704,21 @@ function AgentCard({ agent, listing, saved, onSave, isOwner }) {
         <div style={{ minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
             <span style={{ fontSize: 14, fontWeight: 800, color: "#0d1f2d" }}>{agentName}</span>
-            {agent?.is_verified && <BadgeCheck size={15} color="#10b981" />}
           </div>
           <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 1 }}>Property Agent</div>
-          {/* Unverified agent warning */}
-          {agent && !agent.is_verified && (
+          {/* Verified banner */}
+          {agent?.is_verified ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 10, padding: "8px 12px", borderRadius: 10, background: "#f0fdf4", border: "1.5px solid #bbf7d0" }}>
+              <Shield size={14} color="#16a34a" style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: "#15803d", fontWeight: 800, lineHeight: 1.4 }}>
+                ✓ Verified by FindWithHabi
+              </span>
+            </div>
+          ) : (
             <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 10, padding: "10px 12px", borderRadius: 10, background: "#f59e0b10", border: "1px solid #f59e0b30" }}>
               <span style={{ fontSize: 14, flexShrink: 0 }}>⚠️</span>
               <p style={{ margin: 0, fontSize: 11, color: "#92400e", lineHeight: 1.5, fontWeight: 600 }}>
-                This agent is <strong>not verified</strong> by FindWithHabi. Proceed at your own risk. Always meet in person before making any payment.
+                This agent is <strong>not verified</strong> by FindWithHabi. Proceed at your own risk.
               </p>
             </div>
           )}
@@ -653,6 +739,18 @@ function AgentCard({ agent, listing, saved, onSave, isOwner }) {
             style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px", borderRadius: 11, background: T, color: "#fff", textDecoration: "none", fontSize: 13, fontWeight: 800, boxShadow: "0 4px 14px " + T_GLOW }}>
             <Phone size={14} /> Call
           </a>
+        )}
+        {agentPhone && (
+          <button
+            onClick={() => {
+              navigator.clipboard?.writeText(agentPhone)
+                .then(() => showToast("📞 Phone number copied!", "copy"))
+                .catch(() => {})
+            }}
+            title="Copy phone number"
+            style={{ width: 42, height: 42, borderRadius: 11, background: "#f8fafc", border: "1.5px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+            <Copy size={15} color="#64748b" />
+          </button>
         )}
         <a href={"https://wa.me/" + agentPhone.replace(/\D/g, "") + "?text=" + encodeURIComponent("Hello, I am interested in " + (listing?.title || "this property") + " on FindWithHabi.")}
           target="_blank" rel="noopener noreferrer"
@@ -685,7 +783,15 @@ function AgentCard({ agent, listing, saved, onSave, isOwner }) {
           style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px", borderRadius: 11, border: "1.5px solid " + (saved ? "#ef4444" : "#e2e8f0"), background: saved ? "#fef2f2" : "#f8fafc", color: saved ? "#ef4444" : "#64748b", fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all 0.2s" }}>
           <Heart size={14} fill={saved ? "#ef4444" : "none"} /> {saved ? "Saved" : "Save"}
         </button>
-        <button onClick={() => navigator.share?.({ title: listing?.title, url: window.location.href }) || navigator.clipboard?.writeText(window.location.href)}
+        <button onClick={() => {
+          if (navigator.share) {
+            navigator.share({ title: listing?.title, url: window.location.href })
+          } else {
+            navigator.clipboard?.writeText(window.location.href)
+              .then(() => showToast("🔗 Link copied to clipboard", "copy"))
+              .catch(() => showToast("Could not copy link", "error"))
+          }
+        }}
           style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px", borderRadius: 11, border: "1.5px solid #e2e8f0", background: "#f8fafc", color: "#64748b", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
           <Share2 size={14} /> Share
         </button>
@@ -702,7 +808,7 @@ function MobileContactBar({ agent, listing, saved, onSave, authUser }) {
   return (
     <>
       {/* Fixed bottom bar */}
-      <div className="mobile-bar" style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 300, background: "#fff", borderTop: "1px solid #f1f5f9", padding: "10px 14px", paddingBottom: "calc(10px + env(safe-area-inset-bottom, 0px))", display: "flex", gap: 8, alignItems: "center", boxShadow: "0 -4px 24px rgba(0,0,0,0.1)" }}>
+      <div className="mobile-bar" style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 300, background: "#fff", borderTop: "2px solid " + T + "20", padding: "10px 14px", paddingBottom: "calc(10px + env(safe-area-inset-bottom, 0px))", display: "flex", gap: 8, alignItems: "center", boxShadow: "0 -8px 32px rgba(0,151,178,0.12)" }}>
         <button onClick={onSave}
           style={{ width: 44, height: 44, borderRadius: 11, border: "1.5px solid " + (saved ? "#ef4444" : "#e2e8f0"), background: saved ? "#fef2f2" : "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
           <Heart size={18} color={saved ? "#ef4444" : "#64748b"} fill={saved ? "#ef4444" : "none"} />
@@ -758,6 +864,7 @@ function MobileContactBar({ agent, listing, saved, onSave, authUser }) {
 export default function ListingDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const { showToast } = useToast()
   const id     = params?.id
 
   const [listing,         setListing]         = useState(null)
@@ -795,10 +902,12 @@ export default function ListingDetailPage() {
     if (saved) {
       await supabase.from("saved_listings").delete().eq("user_id", authUser.id).eq("listing_id", id)
       setSaved(false)
+      showToast("Removed from saved listings", "info")
     } else {
       await supabase.from("saved_listings").insert({ user_id: authUser.id, listing_id: id })
       supabase.rpc("increment_saves", { listing_id: id }).then(() => {})
       setSaved(true)
+      showToast("❤️ Listing saved!", "saved")
     }
   }
 
@@ -826,18 +935,47 @@ export default function ListingDetailPage() {
       setAgent(agentData)
       setAmenities(amenityData?.map(a => a.amenities?.name).filter(Boolean) || [])
 
+      // Try city first, fall back to state, then listing_type
+      let similarData = null
+
       if (listingData.city) {
-        const { data: similarData } = await supabase.from("listings").select("*")
-          .eq("status", "active").eq("is_flagged", false).eq("city", listingData.city).neq("id", id)
-          .order("is_featured", { ascending: false }).order("views", { ascending: false }).limit(4)
-        if (similarData?.length > 0) {
-          const sIds = similarData.map(l => l.id)
-          const { data: sImgs } = await supabase.from("listing_images").select("listing_id, url, is_cover").in("listing_id", sIds)
-          setSimilarListings(similarData.map(l => {
-            const li = sImgs ? sImgs.filter(i => i.listing_id === l.id) : []
-            return { ...l, cover_image: li.find(i => i.is_cover)?.url || li[0]?.url || null }
-          }))
-        }
+        const { data: cityData } = await supabase.from("listings").select("*")
+          .eq("status", "active").eq("is_flagged", false)
+          .eq("city", listingData.city).neq("id", id)
+          .order("is_featured", { ascending: false })
+          .order("views", { ascending: false })
+          .limit(4)
+        if (cityData?.length > 0) similarData = cityData
+      }
+
+      // Fall back to same state if city didn't return enough
+      if ((!similarData || similarData.length < 2) && listingData.state) {
+        const { data: stateData } = await supabase.from("listings").select("*")
+          .eq("status", "active").eq("is_flagged", false)
+          .eq("state", listingData.state).neq("id", id)
+          .order("is_featured", { ascending: false })
+          .order("views", { ascending: false })
+          .limit(4)
+        if (stateData?.length > 0) similarData = stateData
+      }
+
+      // Fall back to same listing type anywhere in Nigeria
+      if (!similarData || similarData.length === 0) {
+        const { data: typeData } = await supabase.from("listings").select("*")
+          .eq("status", "active").eq("is_flagged", false)
+          .eq("listing_type", listingData.listing_type || "Buy").neq("id", id)
+          .order("views", { ascending: false })
+          .limit(4)
+        if (typeData?.length > 0) similarData = typeData
+      }
+
+      if (similarData?.length > 0) {
+        const sIds = similarData.map(l => l.id)
+        const { data: sImgs } = await supabase.from("listing_images").select("listing_id, url, is_cover").in("listing_id", sIds)
+        setSimilarListings(similarData.map(l => {
+          const li = sImgs ? sImgs.filter(i => i.listing_id === l.id) : []
+          return { ...l, cover_image: li.find(i => i.is_cover)?.url || li[0]?.url || null }
+        }))
       }
       setLoading(false)
     }
@@ -1080,13 +1218,18 @@ export default function ListingDetailPage() {
         {/* Similar Listings */}
         {similarListings.length > 0 && (
           <div style={{ marginTop: 32 }}>
-            <h2 style={{ margin: "0 0 16px", fontSize: 18, fontWeight: 900, color: "#0d1f2d", letterSpacing: "-0.02em" }}>
-              Similar in {listing?.city}
-            </h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,240px),1fr))", gap: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: "#0d1f2d", letterSpacing: "-0.02em" }}>
+                You May Also Like in {listing?.city || listing?.state || "Nigeria"}
+              </h2>
+              <Link href={"/listings?city=" + (listing?.city || "")} style={{ fontSize: 13, fontWeight: 700, color: T, textDecoration: "none" }}>
+                See more →
+              </Link>
+            </div>
+            <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
               {similarListings.map((l, i) => (
                 <Link key={l.id} href={"/listings/" + l.id}
-                  style={{ textDecoration: "none", display: "block", background: "#fff", borderRadius: 14, overflow: "hidden", border: "1px solid #f1f5f9", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", transition: "transform 0.2s, box-shadow 0.2s" }}
+                  style={{ textDecoration: "none", display: "block", background: "#fff", borderRadius: 14, overflow: "hidden", border: "1px solid #f1f5f9", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", transition: "transform 0.2s, box-shadow 0.2s", flexShrink: 0, width: "clamp(200px,65vw,240px)" }}
                   onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.1)" }}
                   onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.05)" }}>
                   <div style={{ position: "relative", height: 150, background: "#f1f5f9", overflow: "hidden" }}>
