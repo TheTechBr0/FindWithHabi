@@ -302,7 +302,33 @@ function EnquiryForm({ listing, agent }) {
         })
       }
     }
-    // Email notifications will be enabled once domain is verified on Resend
+    // Send email notification to agent
+    try {
+      const { data: agentUser } = await supabase
+        .from("agents")
+        .select("user_id, users(email, full_name)")
+        .eq("id", listing.agent_id)
+        .single()
+
+      const agentEmail    = agentUser?.users?.email
+      const agentFullName = agentUser?.users?.full_name
+
+      if (agentEmail) {
+        fetch("/api/notify-agent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            agentEmail,
+            agentName:    agentFullName?.split(" ")[0] || "Agent",
+            buyerName:    userData?.full_name || authUser.email,
+            buyerPhone:   phone || userData?.phone || "",
+            listingTitle: listing.title,
+            message,
+            enquiryId:    enquiryInserted?.id,
+          }),
+        }).catch(() => {})
+      }
+    } catch(e) {}
 
     setSending(false); setSent(true)
     showToast("Enquiry sent! Agent will reply soon.", "sent")
