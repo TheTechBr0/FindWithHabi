@@ -704,7 +704,7 @@ export default function AgentsPage() {
       <div style={{ maxWidth: 1280, margin: "0 auto", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
         <p style={{ margin: 0, fontSize: 13, color: "rgba(255,255,255,0.3)" }}>© 2025–2026 FindWithHabi · Nigeria's Trusted Property Platform</p>
         <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
-          {[["About","/about"],["Blog","/blog"],["Careers","/careers"],["Privacy","/privacy"],["Terms","/terms"]].map(([label, href]) => (
+          {[["About","/about"],["Blog","/blog"],["Contact","/contact"],["Privacy","/privacy"],["Terms","/terms"]].map(([label, href]) => (
             <Link key={label} href={href} style={{ fontSize: 13, color: "rgba(255,255,255,0.3)", textDecoration: "none", fontWeight: 600 }}>{label}</Link>
           ))}
         </div>

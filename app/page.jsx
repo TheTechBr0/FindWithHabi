@@ -659,7 +659,7 @@ function Footer() {
   const footerLinks = [
     { title: "Platform", links: [["Browse Listings","/listings"],["Find Agents","/agents"],["Login","/auth?mode=login"],["Sign Up","/auth?mode=signup"],["Privacy Policy","/privacy"],["Terms of Service","/terms"]] },
     { title: "Company",  links: [["About Us","/about"],["Blog & News","/blog"],["Careers","/careers"],["Press","/press"]] },
-    { title: "Contact",  links: [["findwithhabi@gmail.com","mailto:findwithhabi@gmail.com"],["Lagos, Nigeria","#"],["Support","/blog"]] },
+    { title: "Contact",  links: [["Contact Us","/contact"],["findwithhabi@gmail.com","mailto:findwithhabi@gmail.com"],["Lagos, Nigeria","#"],["Support","/contact"]] },
   ]
   return (
     <footer id="contact" style={{ background: DARK, color: "#fff", padding: "56px 16px 32px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
