@@ -163,9 +163,14 @@ function NavBar() {
             ? <Link href={dashboardLink} className="auth-btn" style={{ display:"none",alignItems:"center",gap:7,padding:"9px 20px",borderRadius:50,background:"rgba(255,255,255,0.1)",border:"1.5px solid rgba(255,255,255,0.2)",color:"#fff",fontSize:13,fontWeight:800,textDecoration:"none",whiteSpace:"nowrap" }}>
                 My Dashboard
               </Link>
-            : <Link href="/auth" className="auth-btn" style={{ display:"none",alignItems:"center",gap:7,padding:"9px 20px",borderRadius:50,background:T,color:"#fff",fontSize:13,fontWeight:800,textDecoration:"none",whiteSpace:"nowrap" }}>
-                Login / Sign Up
-              </Link>
+            : <div className="auth-btn" style={{ display:"none",alignItems:"center",gap:8 }}>
+                <Link href="/auth?mode=login" style={{ padding:"9px 18px",borderRadius:50,background:"rgba(255,255,255,0.1)",border:"1.5px solid rgba(255,255,255,0.2)",color:"#fff",fontSize:13,fontWeight:800,textDecoration:"none",whiteSpace:"nowrap" }}>
+                  Login
+                </Link>
+                <Link href="/auth?mode=signup" style={{ padding:"9px 18px",borderRadius:50,background:T,color:"#fff",fontSize:13,fontWeight:800,textDecoration:"none",whiteSpace:"nowrap" }}>
+                  Sign Up
+                </Link>
+              </div>
         )}
       </div>
     </header>
@@ -359,10 +364,10 @@ function PropertyCard({ listing, saved, onSave, index }) {
             {listing.sqft && <span style={{ display:"flex",alignItems:"center",gap:4,fontSize:11,color:"#64748b",fontWeight:600 }}><Maximize2 size={12} color="#cbd5e1" />{Number(listing.sqft).toLocaleString()} sqft</span>}
           </div>
         )}
-        <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:"auto" }}>
-          <span style={{ fontSize:"clamp(13px,3.5vw,16px)",fontWeight:900,color:"#fff",letterSpacing:"-0.02em",background:T,padding:"5px 12px",borderRadius:50,boxShadow:"0 2px 8px rgba(0,151,178,0.3)" }}>{listing.price_label}</span>
+        <div style={{ display:"flex",flexDirection:"column",gap:8,marginTop:"auto" }}>
+          <span style={{ fontSize:"clamp(12px,3vw,15px)",fontWeight:900,color:"#fff",background:T,padding:"5px 10px",borderRadius:50,boxShadow:"0 2px 8px rgba(0,151,178,0.3)",textAlign:"center",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{listing.price_label}</span>
           <Link href={"/listings/"+listing.id}
-            style={{ display:"flex",alignItems:"center",gap:5,padding:"7px 13px",borderRadius:10,background:"#f1f5f9",color:"#0d1f2d",fontSize:12,fontWeight:700,textDecoration:"none",transition:"all 0.2s",minHeight:36 }}
+            style={{ display:"flex",alignItems:"center",justifyContent:"center",gap:5,padding:"8px",borderRadius:10,background:"#f1f5f9",color:"#0d1f2d",fontSize:12,fontWeight:700,textDecoration:"none",transition:"all 0.2s" }}
             onMouseEnter={e => { e.currentTarget.style.background=T; e.currentTarget.style.color="#fff" }}
             onMouseLeave={e => { e.currentTarget.style.background="#f1f5f9"; e.currentTarget.style.color="#0d1f2d" }}>
             View <ArrowRight size={12} />
@@ -720,6 +725,7 @@ function ListingsPage() {
   }
 
   return (
+    <>
     <div style={{ minHeight:"100svh",background:"#f8fafc",fontFamily:"'DM Sans',system-ui,sans-serif" }}>
       <NavBar />
 
@@ -967,6 +973,17 @@ function ListingsPage() {
         }
       `}</style>
     </div>
+    <footer style={{ background: "#080f14", padding: "32px 24px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+      <div style={{ maxWidth: 1280, margin: "0 auto", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+        <p style={{ margin: 0, fontSize: 13, color: "rgba(255,255,255,0.3)" }}>© 2025–2026 FindWithHabi · Nigeria's Trusted Property Platform</p>
+        <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+          {[["About","/about"],["Blog","/blog"],["Careers","/careers"],["Privacy","/privacy"],["Terms","/terms"]].map(([label, href]) => (
+            <Link key={label} href={href} style={{ fontSize: 13, color: "rgba(255,255,255,0.3)", textDecoration: "none", fontWeight: 600 }}>{label}</Link>
+          ))}
+        </div>
+      </div>
+    </footer>
+    </>
   )
 }
 

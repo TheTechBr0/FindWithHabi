@@ -351,7 +351,7 @@ function SignupForm({ onSwitch }) {
       password,
       options: {
         data: { full_name: name, phone, role },
-        emailRedirectTo: "https://find-with-habi.vercel.app/auth",
+        emailRedirectTo: "https://findwithhabi.com/auth",
       }
     })
 
@@ -523,7 +523,7 @@ function GoogleBtn() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: "https://find-with-habi.vercel.app/auth/callback",
+        redirectTo: "https://findwithhabi.com/auth/callback",
       },
     })
     if (error) { alert("Google sign-in failed: " + error.message); setLoading(false) }
@@ -652,8 +652,10 @@ function ForgotPasswordForm({ onBack }) {
 }
 
 // ─── Main Auth Page ───────────────────────────────────────────────────────────
-export default function AuthPage() {
-  const [mode, setMode] = useState("login") // "login" | "signup" | "forgot"
+function AuthPageInner() {
+  const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null
+  const initialMode = searchParams?.get("mode") === "signup" ? "signup" : "login"
+  const [mode, setMode] = useState(initialMode) // "login" | "signup" | "forgot"
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
@@ -891,4 +893,8 @@ export default function AuthPage() {
       `}</style>
     </div>
   )
+}
+
+export default function AuthPage() {
+  return <AuthPageInner />
 }

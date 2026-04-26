@@ -1472,7 +1472,7 @@ function Performance({ agent, user, listings }) {
           </div>
         </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,220px),1fr))", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,220px),1fr))", gap: 14, marginBottom: 24 }}>
         {[
           { label: "Active Listings", value: activeListings, color: T, icon: Building2 },
           { label: "Total Views", value: totalViews.toLocaleString(), color: "#f59e0b", icon: Eye },
@@ -1486,6 +1486,45 @@ function Performance({ agent, user, listings }) {
           </div>
         ))}
       </div>
+
+      {/* Views per listing chart */}
+      {listings.length > 0 && (
+        <div style={{ background: "#fff", borderRadius: 20, padding: "24px", border: "1px solid #f1f5f9", animation: "fadeUp 0.4s ease 280ms both" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: T, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 4 }}>Analytics</div>
+              <h3 style={{ margin: 0, fontSize: 17, fontWeight: 900, color: "#0d1f2d" }}>Views per Listing</h3>
+            </div>
+            <div style={{ fontSize: 13, color: "#94a3b8", fontWeight: 600 }}>{totalViews.toLocaleString()} total</div>
+          </div>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 120, overflowX: "auto", paddingBottom: 8 }}>
+            {listings
+              .filter(l => l.status === "active")
+              .sort((a, b) => (b.views || 0) - (a.views || 0))
+              .slice(0, 10)
+              .map((l, i) => {
+                const maxViews = Math.max(...listings.map(x => x.views || 0), 1)
+                const pct = Math.max(((l.views || 0) / maxViews) * 100, 4)
+                const isTop = i === 0
+                return (
+                  <div key={l.id} style={{ flex: 1, minWidth: 40, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, height: "100%" }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: isTop ? T : "#94a3b8" }}>{l.views || 0}</div>
+                    <div style={{ flex: 1, display: "flex", alignItems: "flex-end", width: "100%" }}>
+                      <div style={{ width: "100%", height: pct + "%", minHeight: 4, borderRadius: "6px 6px 0 0", background: isTop ? T : T + "40", transition: "height 0.8s ease " + (i * 80) + "ms" }} />
+                    </div>
+                    <div style={{ fontSize: 9, color: "#94a3b8", fontWeight: 600, textAlign: "center", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", width: "100%", maxWidth: 52 }}
+                      title={l.title}>
+                      {l.title?.split(" ").slice(0, 2).join(" ")}
+                    </div>
+                  </div>
+                )
+              })}
+          </div>
+          {listings.filter(l => l.status === "active").length === 0 && (
+            <div style={{ textAlign: "center", padding: "24px", color: "#94a3b8", fontSize: 13 }}>No active listings to show</div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

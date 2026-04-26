@@ -73,7 +73,7 @@ function NavBar({ scrollY }) {
 
   const mobileAuthItem = authUser
     ? ["My Dashboard", dashboardLink]
-    : ["Login / Sign Up", "/auth"]
+    : ["Login", "/auth?mode=login"]
 
   return (
     <header style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, transition: "background 0.4s ease, backdrop-filter 0.4s ease", background: solid ? "rgba(8,15,20,0.96)" : "transparent", backdropFilter: solid ? "blur(20px)" : "none", borderBottom: solid ? "1px solid rgba(255,255,255,0.06)" : "none" }}>
@@ -83,7 +83,7 @@ function NavBar({ scrollY }) {
         </Link>
 
         <nav className="desktop-nav" style={{ display: "none", alignItems: "center", gap: 28 }}>
-          {[["Listings","/listings"],["Agents","/agents"],["Cities","#cities"],["Blog","#"]].map(([label, href]) => (
+          {[["Listings","/listings"],["Agents","/agents"],["Blog","/blog"],["About","/about"]].map(([label, href]) => (
             <Link key={label} href={href} style={{ color: "rgba(255,255,255,0.7)", fontSize: 14, fontWeight: 600, textDecoration: "none", transition: "color 0.2s" }}
               onMouseEnter={e => e.currentTarget.style.color="#fff"} onMouseLeave={e => e.currentTarget.style.color="rgba(255,255,255,0.7)"}>
               {label}
@@ -98,11 +98,16 @@ function NavBar({ scrollY }) {
                   style={{ display: "none", alignItems: "center", gap: 7, padding: "8px 18px", borderRadius: 50, background: "rgba(255,255,255,0.1)", border: "1.5px solid rgba(255,255,255,0.2)", color: "#fff", fontSize: 13, fontWeight: 800, textDecoration: "none", transition: "background 0.2s" }}>
                   My Dashboard
                 </Link>
-              : <Link href="/auth" className="list-btn"
-                  style={{ display: "none", alignItems: "center", gap: 7, padding: "8px 18px", borderRadius: 50, background: T, color: "#fff", fontSize: 13, fontWeight: 800, textDecoration: "none", boxShadow: `0 4px 20px ${T_GLOW}`, transition: "background 0.2s" }}
-                  onMouseEnter={e => { e.currentTarget.style.background = T_DARK }} onMouseLeave={e => { e.currentTarget.style.background = T }}>
-                  Login / Sign Up
-                </Link>
+              : <div style={{ display: "none", alignItems: "center", gap: 8 }} className="list-btn">
+                  <Link href="/auth?mode=login"
+                    style={{ alignItems: "center", gap: 7, padding: "8px 18px", borderRadius: 50, background: "rgba(255,255,255,0.1)", border: "1.5px solid rgba(255,255,255,0.2)", color: "#fff", fontSize: 13, fontWeight: 800, textDecoration: "none", display: "flex" }}>
+                    Login
+                  </Link>
+                  <Link href="/auth?mode=signup"
+                    style={{ alignItems: "center", gap: 7, padding: "8px 18px", borderRadius: 50, background: T, color: "#fff", fontSize: 13, fontWeight: 800, textDecoration: "none", display: "flex", boxShadow: `0 4px 20px ${T_GLOW}` }}>
+                    Sign Up
+                  </Link>
+                </div>
           )}
           <div className="hamburger-wrap" style={{ position: "relative" }}>
             <button onClick={() => setMenuOpen(p => !p)}
@@ -113,7 +118,7 @@ function NavBar({ scrollY }) {
               <>
                 <div onClick={() => setMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 10 }} />
                 <div style={{ position: "absolute", top: "calc(100% + 10px)", right: 0, zIndex: 20, width: 220, background: "rgba(8,15,20,0.97)", backdropFilter: "blur(24px)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, overflow: "hidden", boxShadow: "0 16px 48px rgba(0,0,0,0.5)", animation: "dropIn 0.18s ease" }}>
-                  {[["Listings","/listings"],["Agents","/agents"],["Cities","#cities"],["Blog","#"], mobileAuthItem].map(([label,href],i,arr) => (
+                  {[["Listings","/listings"],["Agents","/agents"],["Blog","/blog"],["About","/about"], mobileAuthItem].map(([label,href],i,arr) => (
                     <Link key={label} href={href} onClick={() => setMenuOpen(false)}
                       style={{ display: "flex", alignItems: "center", padding: "0 20px", minHeight: 48, color: i === arr.length-1 ? T : "rgba(255,255,255,0.85)", fontSize: 14, fontWeight: i === arr.length-1 ? 800 : 600, textDecoration: "none", borderBottom: i === arr.length-1 ? "none" : "1px solid rgba(255,255,255,0.06)" }}>
                       {label}
@@ -216,9 +221,14 @@ function Hero({ stats }) {
           </div>
 
           <div className="hero-list-cta" style={{ ...anim(450) }}>
-            <Link href="/auth" style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 20, padding: "13px 28px", borderRadius: 50, background: "#fff", color: T, fontSize: 14, fontWeight: 900, textDecoration: "none", boxShadow: "0 8px 32px rgba(0,0,0,0.3)", minHeight: 48 }}>
-              Login / Sign Up
-            </Link>
+            <div style={{ display: "flex", gap: 10, marginTop: 20, flexWrap: "wrap" }}>
+              <Link href="/auth?mode=signup" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "13px 28px", borderRadius: 50, background: "#fff", color: T, fontSize: 14, fontWeight: 900, textDecoration: "none", boxShadow: "0 8px 32px rgba(0,0,0,0.3)", minHeight: 48 }}>
+                Get Started Free
+              </Link>
+              <Link href="/auth?mode=login" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "13px 28px", borderRadius: 50, background: "rgba(255,255,255,0.1)", border: "1.5px solid rgba(255,255,255,0.2)", color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", minHeight: 48 }}>
+                Login
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -631,8 +641,8 @@ function CTABanner() {
           <h2 style={{ margin: "0 0 14px", fontSize: "clamp(22px,5vw,52px)", fontWeight: 900, color: "#fff", letterSpacing: "-0.03em", lineHeight: 1.1, fontFamily: "'DM Sans', system-ui, sans-serif" }}>Join FindWithHabi<br />Today</h2>
           <p style={{ margin: "0 auto 32px", fontSize: 15, color: "rgba(255,255,255,0.5)", maxWidth: 380, lineHeight: 1.7 }}>Join thousands of buyers, landlords and agents who trust FindWithHabi to find and list properties across Nigeria.</p>
           <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-            <Link href="/auth" style={{ display: "flex", alignItems: "center", gap: 8, padding: "13px 28px", borderRadius: 50, background: "#fff", color: T, fontSize: 14, fontWeight: 900, textDecoration: "none", minHeight: 48 }}>
-              Login / Sign Up
+            <Link href="/auth?mode=signup" style={{ display: "flex", alignItems: "center", gap: 8, padding: "13px 28px", borderRadius: 50, background: "#fff", color: T, fontSize: 14, fontWeight: 900, textDecoration: "none", minHeight: 48 }}>
+              Sign Up Free
             </Link>
             <a href="tel:+2348001234567" style={{ display: "flex", alignItems: "center", gap: 8, padding: "13px 28px", borderRadius: 50, border: "1.5px solid rgba(255,255,255,0.25)", color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", minHeight: 48 }}>
               <Phone size={14} /> Talk to an Expert
@@ -647,9 +657,9 @@ function CTABanner() {
 // ─── Footer ───────────────────────────────────────────────────────────────────
 function Footer() {
   const footerLinks = [
-    { title: "Platform", links: [["Browse Listings","/listings"],["Login / Sign Up","/auth"],["Find Agents","#agents"],["Privacy Policy","/privacy"]] },
-    { title: "Company",  links: [["About Us","#"],["Blog & News","#"],["Careers","#"],["Press","#"]] },
-    { title: "Contact",  links: [["hello@findwithhabi.com","mailto:hello@findwithhabi.com"],["+234 800 FINDWITH","tel:+2348003463984"],["Lagos, Nigeria","#"],["Support","#"]] },
+    { title: "Platform", links: [["Browse Listings","/listings"],["Find Agents","/agents"],["Login","/auth?mode=login"],["Sign Up","/auth?mode=signup"],["Privacy Policy","/privacy"],["Terms of Service","/terms"]] },
+    { title: "Company",  links: [["About Us","/about"],["Blog & News","/blog"],["Careers","/careers"],["Press","/press"]] },
+    { title: "Contact",  links: [["findwithhabi@gmail.com","mailto:findwithhabi@gmail.com"],["Lagos, Nigeria","#"],["Support","/blog"]] },
   ]
   return (
     <footer id="contact" style={{ background: DARK, color: "#fff", padding: "56px 16px 32px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
@@ -723,7 +733,7 @@ function Footer() {
           </div>
         </div>
         <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 24, display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", margin: 0 }}>© 2026 FindWithHabi. All rights reserved.</p>
+          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", margin: 0 }}>© 2025–2026 FindWithHabi. All rights reserved.</p>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
             {[["Privacy Policy","/privacy"],["Terms of Service","/terms"],["Cookie Policy","#"]].map(([label, href]) => (
               <a key={label} href={href} style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>{label}</a>

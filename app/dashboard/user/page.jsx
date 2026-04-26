@@ -823,6 +823,15 @@ function ListingCard({ l, isSaved, onSave }) {
 function BrowseListings({ onSave }) {
   const { showToast } = useToast()
   const [listings,  setListings]  = useState([])
+  const [recentlyViewed, setRecentlyViewed] = useState([])
+
+  // Load recently viewed from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("fwh_recently_viewed")
+      if (stored) setRecentlyViewed(JSON.parse(stored))
+    } catch(e) {}
+  }, [])
   const [loading,   setLoading]   = useState(true)
   const [filter,    setFilter]    = useState("All")
   const [search,    setSearch]    = useState("")
@@ -940,6 +949,39 @@ function BrowseListings({ onSave }) {
           <button key={t} onClick={() => setFilter(t)} style={{ padding: "7px 14px", borderRadius: 9, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, background: filter === t ? "#fff" : "transparent", color: filter === t ? "#0d1f2d" : "#64748b", transition: "all 0.2s", whiteSpace: "nowrap" }}>{t}</button>
         ))}
       </div>
+
+      {/* Recently Viewed */}
+      {recentlyViewed.length > 0 && (
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Clock size={15} color="#64748b" />
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "#0d1f2d" }}>Recently Viewed</h3>
+            </div>
+            <button onClick={() => { try { localStorage.removeItem("fwh_recently_viewed"); setRecentlyViewed([]) } catch(e) {} }}
+              style={{ fontSize: 11, color: "#94a3b8", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
+              Clear
+            </button>
+          </div>
+          <div style={{ display: "flex", gap: 12, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
+            {recentlyViewed.slice(0, 5).map(l => (
+              <Link key={l.id} href={"/listings/" + l.id}
+                onClick={() => { try { sessionStorage.setItem("fwh_prev_path", "/dashboard/user/listings") } catch(e) {} }}
+                style={{ textDecoration: "none", flexShrink: 0, width: 170, background: "#fff", borderRadius: 14, overflow: "hidden", border: "1px solid #f1f5f9", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", display: "block" }}>
+                <div style={{ height: 100, background: "#f1f5f9", overflow: "hidden" }}>
+                  {l.cover_image
+                    ? <img src={l.cover_image} alt={l.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Building2 size={24} color="#cbd5e1" /></div>}
+                </div>
+                <div style={{ padding: "10px 12px" }}>
+                  <p style={{ margin: "0 0 3px", fontSize: 12, fontWeight: 700, color: "#0d1f2d", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{l.title}</p>
+                  <p style={{ margin: 0, fontSize: 11, color: "#0097B2", fontWeight: 800 }}>{l.price_label}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Featured section */}
       {showCurated && featuredListings.length > 0 && (

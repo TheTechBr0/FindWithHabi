@@ -69,5 +69,29 @@ export default function sitemap() {
       changeFrequency:  "yearly",
       priority:         0.3,
     },
+    {
+      url:              BASE + "/about",
+      lastModified:     now,
+      changeFrequency:  "monthly",
+      priority:         0.5,
+    },
+    {
+      url:              BASE + "/blog",
+      lastModified:     now,
+      changeFrequency:  "weekly",
+      priority:         0.6,
+    },
+    {
+      url:              BASE + "/careers",
+      lastModified:     now,
+      changeFrequency:  "monthly",
+      priority:         0.4,
+    },
+    {
+      url:              BASE + "/press",
+      lastModified:     now,
+      changeFrequency:  "monthly",
+      priority:         0.4,
+    },
   ]
 }

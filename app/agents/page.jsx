@@ -68,9 +68,14 @@ function NavBar() {
               ? <Link href={dashboardLink} className="auth-btn" style={{ display: "none", alignItems: "center", gap: 7, padding: "9px 20px", borderRadius: 50, background: "rgba(255,255,255,0.1)", border: "1.5px solid rgba(255,255,255,0.2)", color: "#fff", fontSize: 13, fontWeight: 800, textDecoration: "none", whiteSpace: "nowrap" }}>
                   My Dashboard
                 </Link>
-              : <Link href="/auth" className="auth-btn" style={{ display: "none", alignItems: "center", gap: 7, padding: "9px 20px", borderRadius: 50, background: T, color: "#fff", fontSize: 13, fontWeight: 800, textDecoration: "none", whiteSpace: "nowrap" }}>
-                  Login / Sign Up
-                </Link>
+              : <div className="auth-btn" style={{ display: "none", alignItems: "center", gap: 8 }}>
+                  <Link href="/auth?mode=login" style={{ padding: "9px 18px", borderRadius: 50, background: "rgba(255,255,255,0.1)", border: "1.5px solid rgba(255,255,255,0.2)", color: "#fff", fontSize: 13, fontWeight: 800, textDecoration: "none", whiteSpace: "nowrap" }}>
+                    Login
+                  </Link>
+                  <Link href="/auth?mode=signup" style={{ padding: "9px 18px", borderRadius: 50, background: T, color: "#fff", fontSize: 13, fontWeight: 800, textDecoration: "none", whiteSpace: "nowrap" }}>
+                    Sign Up
+                  </Link>
+                </div>
           )}
           <div className="hamburger-wrap" style={{ position: "relative" }}>
             <button onClick={() => setMenuOpen(p => !p)}
@@ -81,7 +86,7 @@ function NavBar() {
               <>
                 <div onClick={() => setMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 10 }} />
                 <div style={{ position: "absolute", top: "calc(100% + 10px)", right: 0, zIndex: 20, width: 210, background: "rgba(8,15,20,0.97)", backdropFilter: "blur(24px)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, overflow: "hidden", boxShadow: "0 16px 48px rgba(0,0,0,0.5)", animation: "dropIn 0.15s ease" }}>
-                  {[["Listings","/listings"],["Agents","/agents"],["Blog","#"], authUser ? ["My Dashboard",dashboardLink] : ["Login / Sign Up","/auth"]].map(([label,href],i,arr) => (
+                  {[["Listings","/listings"],["Agents","/agents"],["Blog","#"], authUser ? ["My Dashboard",dashboardLink] : ["Login","/auth"]].map(([label,href],i,arr) => (
                     <Link key={label} href={href} onClick={() => setMenuOpen(false)}
                       style={{ display: "flex", alignItems: "center", minHeight: 48, padding: "0 20px", color: i === arr.length-1 ? T : "rgba(255,255,255,0.85)", fontSize: 14, fontWeight: i === arr.length-1 ? 800 : 600, textDecoration: "none", borderBottom: i === arr.length-1 ? "none" : "1px solid rgba(255,255,255,0.06)" }}>
                       {label}
@@ -232,7 +237,7 @@ function ContactModal({ agent, onClose, authUser, userData }) {
             {!authUser ? (
               <div style={{ textAlign: "center", padding: "16px 0" }}>
                 <p style={{ margin: "0 0 16px", fontSize: 14, color: "#64748b" }}>Login to send a message to this agent</p>
-                <a href="/auth" style={{ display: "inline-flex", padding: "11px 28px", borderRadius: 50, background: T, color: "#fff", textDecoration: "none", fontSize: 14, fontWeight: 800 }}>Login / Sign Up</a>
+                <a href="/auth" style={{ display: "inline-flex", padding: "11px 28px", borderRadius: 50, background: T, color: "#fff", textDecoration: "none", fontSize: 14, fontWeight: 800 }}>Login</a>
               </div>
             ) : (
               <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -480,6 +485,7 @@ export default function AgentsPage() {
   })
 
   return (
+    <>
     <div style={{ minHeight: "100svh", background: "#f8fafc", fontFamily: "'DM Sans',system-ui,sans-serif" }}>
       <NavBar />
 
@@ -678,5 +684,16 @@ export default function AgentsPage() {
         }
       `}</style>
     </div>
+    <footer style={{ background: "#080f14", padding: "32px 24px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+      <div style={{ maxWidth: 1280, margin: "0 auto", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+        <p style={{ margin: 0, fontSize: 13, color: "rgba(255,255,255,0.3)" }}>© 2025–2026 FindWithHabi · Nigeria's Trusted Property Platform</p>
+        <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+          {[["About","/about"],["Blog","/blog"],["Careers","/careers"],["Privacy","/privacy"],["Terms","/terms"]].map(([label, href]) => (
+            <Link key={label} href={href} style={{ fontSize: 13, color: "rgba(255,255,255,0.3)", textDecoration: "none", fontWeight: 600 }}>{label}</Link>
+          ))}
+        </div>
+      </div>
+    </footer>
+    </>
   )
 }
