@@ -346,14 +346,30 @@ function AgentCard({ agent, index, onContact }) {
           )}
         </div>
 
+        {/* Active listings badge */}
+        {(agent.listing_count || 0) > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 50, background: T + "12", border: "1px solid " + T + "30" }}>
+              <Building2 size={11} color={T} />
+              <span style={{ fontSize: 11, fontWeight: 800, color: T }}>{agent.listing_count} Active Listing{agent.listing_count !== 1 ? "s" : ""}</span>
+            </div>
+          </div>
+        )}
+        {(agent.listing_count || 0) === 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 50, background: "#f8fafc", border: "1px solid #e2e8f0" }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8" }}>No active listings</span>
+            </div>
+          </div>
+        )}
         <div style={{ display: "flex", gap: 0, background: "#f8fafc", borderRadius: 14, overflow: "hidden", marginBottom: 18 }}>
           {[
-            { val: agent.listing_count || 0, label: "Listings"  },
-            { val: agent.total_reviews || 0, label: "Reviews"   },
-            { val: agent.users?.created_at ? new Date(agent.users.created_at).getFullYear() : "—", label: "Since" },
-          ].map(({ val, label }, i) => (
+            { val: agent.listing_count || 0, label: "Listings", color: agent.listing_count > 0 ? T : "#94a3b8" },
+            { val: agent.total_reviews || 0, label: "Reviews",  color: "#f59e0b" },
+            { val: agent.users?.created_at ? new Date(agent.users.created_at).getFullYear() : "—", label: "Since", color: "#64748b" },
+          ].map(({ val, label, color }, i) => (
             <div key={i} style={{ flex: 1, padding: "10px 8px", textAlign: "center", borderRight: i < 2 ? "1px solid #f1f5f9" : "none" }}>
-              <div style={{ fontSize: 16, fontWeight: 900, color: "#0d1f2d" }}>{val}</div>
+              <div style={{ fontSize: 16, fontWeight: 900, color }}>{val}</div>
               <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2, fontWeight: 600 }}>{label}</div>
             </div>
           ))}

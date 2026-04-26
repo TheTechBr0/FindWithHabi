@@ -746,6 +746,79 @@ function Footer() {
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
+// ─── How It Works ─────────────────────────────────────────────────────────────
+function HowItWorksSection() {
+  const T = "#0097B2"
+  const T_GLOW = "#0097B244"
+  return (
+    <section style={{ padding: "72px 20px", background: "#fff" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 48 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: T, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>Simple Process</div>
+          <h2 style={{ margin: "0 0 12px", fontSize: "clamp(26px,4vw,40px)", fontWeight: 900, color: "#0d1f2d", letterSpacing: "-0.03em" }}>How FindWithHabi Works</h2>
+          <p style={{ margin: 0, fontSize: 16, color: "#64748b", lineHeight: 1.6 }}>Find your perfect property in 3 simple steps</p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%,260px),1fr))", gap: 24 }}>
+          {[
+            { step: "01", icon: "🔍", title: "Browse Listings", desc: "Search thousands of verified properties across all 36 states. Filter by location, price, bedrooms and property type to find exactly what you need." },
+            { step: "02", icon: "💬", title: "Contact an Agent", desc: "Send a direct message to verified agents. Ask questions, schedule viewings and negotiate deals safely through our secure messaging platform." },
+            { step: "03", icon: "🏠", title: "Move In", desc: "Finalise your deal, sign your agreement and move into your new home. FindWithHabi supports you every step of the way." },
+          ].map((s, i) => (
+            <div key={i} style={{ background: "#f8fafc", borderRadius: 24, padding: "32px 28px", border: "1px solid #f1f5f9", position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: 12, right: 18, fontSize: 52, fontWeight: 900, color: T + "0d", lineHeight: 1, userSelect: "none" }}>{s.step}</div>
+              <div style={{ width: 56, height: 56, borderRadius: 18, background: T + "12", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, marginBottom: 20 }}>{s.icon}</div>
+              <h3 style={{ margin: "0 0 10px", fontSize: 19, fontWeight: 900, color: "#0d1f2d" }}>{s.title}</h3>
+              <p style={{ margin: 0, fontSize: 14, color: "#64748b", lineHeight: 1.7 }}>{s.desc}</p>
+            </div>
+          ))}
+        </div>
+        <div style={{ textAlign: "center", marginTop: 40 }}>
+          <Link href="/listings" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "13px 32px", borderRadius: 50, background: T, color: "#fff", textDecoration: "none", fontSize: 15, fontWeight: 800, boxShadow: "0 4px 20px " + T_GLOW }}>
+            Start Browsing <ArrowRight size={16} />
+          </Link>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─── Testimonials ──────────────────────────────────────────────────────────────
+function TestimonialsSection() {
+  const T = "#0097B2"
+  return (
+    <section style={{ padding: "72px 20px", background: "#f8fafc" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 48 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: T, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>Testimonials</div>
+          <h2 style={{ margin: "0 0 12px", fontSize: "clamp(26px,4vw,40px)", fontWeight: 900, color: "#0d1f2d", letterSpacing: "-0.03em" }}>What People Are Saying</h2>
+          <p style={{ margin: 0, fontSize: 16, color: "#64748b" }}>Trusted by buyers, renters and agents across Nigeria</p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%,300px),1fr))", gap: 24 }}>
+          {[
+            { name: "Adaeze Okonkwo", role: "First-time buyer · Lagos", text: "I had been searching for a 2-bedroom apartment in Lekki for months. FindWithHabi connected me to a verified agent within hours and I moved in 3 weeks later. The process was so smooth!", initial: "A" },
+            { name: "Emeka Nwosu", role: "Property Agent · Abuja", text: "As an agent, FindWithHabi has changed how I get clients. I used to rely on word of mouth. Now I get genuine enquiries from serious buyers every week through the platform.", initial: "E" },
+            { name: "Fatima Abdullahi", role: "Renter · Port Harcourt", text: "What I love most is that every agent is verified. In the past I have been scammed by fake agents. FindWithHabi gives me confidence that I am dealing with real professionals.", initial: "F" },
+          ].map((t, i) => (
+            <div key={i} style={{ background: "#fff", borderRadius: 24, padding: "28px", border: "1px solid #f1f5f9", boxShadow: "0 2px 16px rgba(0,0,0,0.05)", display: "flex", flexDirection: "column" }}>
+              <div style={{ display: "flex", gap: 3, marginBottom: 16 }}>
+                {[1,2,3,4,5].map(s => <span key={s} style={{ color: "#f59e0b", fontSize: 17 }}>★</span>)}
+              </div>
+              <p style={{ margin: "0 0 20px", fontSize: 15, color: "#374151", lineHeight: 1.8, flex: 1, fontStyle: "italic" }}>"{t.text}"</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, paddingTop: 16, borderTop: "1px solid #f1f5f9" }}>
+                <div style={{ width: 44, height: 44, borderRadius: "50%", background: "linear-gradient(135deg," + T + "30," + T + "10)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 900, color: T, flexShrink: 0 }}>{t.initial}</div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: "#0d1f2d" }}>{t.name}</div>
+                  <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>{t.role}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export default function LandingPage() {
   const [scrollY,  setScrollY]  = useState(0)
   const [listings,        setListings]        = useState([])
@@ -865,6 +938,8 @@ export default function LandingPage() {
         <PopularListings listings={popularListings} />
         <CitiesSection />
         <WhySection />
+        <HowItWorksSection />
+        <TestimonialsSection />
         <AgentsSection agents={agents} />
         <CTABanner />
       </main>
