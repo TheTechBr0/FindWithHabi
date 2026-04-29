@@ -523,7 +523,7 @@ function GoogleBtn() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: "https://findwithhabi.com/auth/callback",
+        redirectTo: (typeof window !== "undefined" ? window.location.origin : "https://findwithhabi.com") + "/auth/callback",
       },
     })
     if (error) { alert("Google sign-in failed: " + error.message); setLoading(false) }
