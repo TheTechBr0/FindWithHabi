@@ -864,7 +864,7 @@ function EditListingModal({ listing, onClose, onSave }) {
           <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: "50%", background: "#f8fafc", border: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><X size={15} color="#64748b" /></button>
         </div>
         <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: 14 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%,180px),1fr))", gap: 12 }}>
             {[["Type","listing_type",["Buy","Rent","Lease","Commercial","Student"]],["Category","category",["Residential","Commercial","Land","Student Housing","Short Let"]]].map(([label,key,opts]) => (
               <div key={key}><label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</label><select value={form[key]} onChange={e => update(key, e.target.value)} style={inp}>{opts.map(o => <option key={o}>{o}</option>)}</select></div>
             ))}
@@ -876,19 +876,19 @@ function EditListingModal({ listing, onClose, onSave }) {
               <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#64748b", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}><input type="checkbox" checked={form.negotiable} onChange={e => update("negotiable", e.target.checked)} /> Negotiable</label>
             </div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%,180px),1fr))", gap: 12 }}>
             <div><label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.04em" }}>City</label><input value={form.city} onChange={e => update("city", e.target.value)} placeholder="e.g. Lagos" style={inp} onFocus={e => { e.target.style.borderColor = T }} onBlur={e => { e.target.style.borderColor = "#e2e8f0" }} /></div>
             <div><label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.04em" }}>State</label><select value={form.state} onChange={e => update("state", e.target.value)} style={inp}><option value="">Select state</option>{NIGERIAN_STATES.map(s => <option key={s}>{s}</option>)}</select></div>
           </div>
           <div><label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.04em" }}>Address</label><input value={form.address} onChange={e => update("address", e.target.value)} placeholder="Street address or area" style={inp} onFocus={e => { e.target.style.borderColor = T }} onBlur={e => { e.target.style.borderColor = "#e2e8f0" }} /></div>
           {form.category !== "Land" && form.category !== "Commercial" && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
               {[["Beds","beds"],["Baths","baths"],["Toilets","toilets"]].map(([label,key]) => (
                 <div key={key}><label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</label><input value={form[key]} onChange={e => update(key, e.target.value)} type="number" min="0" style={inp} onFocus={e => { e.target.style.borderColor = T }} onBlur={e => { e.target.style.borderColor = "#e2e8f0" }} /></div>
               ))}
             </div>
           )}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%,180px),1fr))", gap: 12 }}>
             {[["Condition","condition",["New","Fairly New","Old but good","Needs renovation"]],["Furnished","furnished",["Furnished","Semi-furnished","Unfurnished"]]].map(([label,key,opts]) => (
               <div key={key}><label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</label><select value={form[key]} onChange={e => update(key, e.target.value)} style={inp}>{opts.map(o => <option key={o}>{o}</option>)}</select></div>
             ))}
@@ -935,9 +935,9 @@ function Listings({ listings, loading, onRefresh }) {
         <Link href="/dashboard/agent/add-listing" style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 20px", borderRadius: 12, background: T, color: "#fff", fontSize: 14, fontWeight: 800, textDecoration: "none", boxShadow: "0 4px 16px " + T_GLOW, minHeight: 44 }}><Plus size={16} /> Add New Listing</Link>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", background: "#f1f5f9", borderRadius: 12, padding: 4, gap: 2 }}>
+        <div style={{ display: "flex", background: "#f1f5f9", borderRadius: 12, padding: 4, gap: 2, overflowX: "auto", scrollbarWidth: "none", flexShrink: 0 }}>
           {["all","active","pending","sold","rejected"].map(f => (
-            <button key={f} onClick={() => setFilter(f)} style={{ padding: "7px 12px", borderRadius: 9, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, background: filter === f ? "#fff" : "transparent", color: filter === f ? "#0d1f2d" : "#64748b", boxShadow: filter === f ? "0 2px 8px rgba(0,0,0,0.08)" : "none", transition: "all 0.2s", textTransform: "capitalize" }}>
+            <button key={f} onClick={() => setFilter(f)} style={{ padding: "7px 10px", borderRadius: 9, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 700, background: filter === f ? "#fff" : "transparent", color: filter === f ? "#0d1f2d" : "#64748b", boxShadow: filter === f ? "0 2px 8px rgba(0,0,0,0.08)" : "none", transition: "all 0.2s", textTransform: "capitalize", whiteSpace: "nowrap", flexShrink: 0 }}>
               {f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
             </button>
           ))}
@@ -974,9 +974,9 @@ function Listings({ listings, loading, onRefresh }) {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {filtered.map((l, i) => (
-            <div key={l.id} style={{ background: "#fff", borderRadius: 18, border: "1px solid #f1f5f9", overflow: "hidden", display: "flex", animation: "fadeUp 0.4s ease " + (i * 60) + "ms both", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
-              <div style={{ position: "relative", width: "clamp(100px,25%,180px)", flexShrink: 0 }}>
-                {l.cover_image ? <img src={l.cover_image} alt={l.title} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", minHeight: 120 }} /> : <div style={{ width: "100%", minHeight: 120, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}><Building2 size={28} color="#cbd5e1" /></div>}
+            <div key={l.id} className="listing-mgmt-card" style={{ background: "#fff", borderRadius: 18, border: "1px solid #f1f5f9", overflow: "hidden", display: "flex", animation: "fadeUp 0.4s ease " + (i * 60) + "ms both", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+              <div className="listing-mgmt-img" style={{ position: "relative", width: "clamp(90px,25%,160px)", flexShrink: 0 }}>
+                {l.cover_image ? <img src={l.cover_image} alt={l.title} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", minHeight: 110 }} /> : <div style={{ width: "100%", minHeight: 110, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}><Building2 size={28} color="#cbd5e1" /></div>}
                 <div style={{ position: "absolute", top: 8, left: 8 }}><StatusBadge status={l.status} /></div>
                 {l.is_featured && <div style={{ position: "absolute", top: 8, right: 8, background: "#f59e0b", color: "#fff", fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 50 }}>✦ Boost</div>}
               </div>
@@ -992,7 +992,7 @@ function Listings({ listings, loading, onRefresh }) {
                       {menuOpen === l.id && (
                         <>
                           <div onClick={() => setMenuOpen(null)} style={{ position: "fixed", inset: 0, zIndex: 10 }} />
-                          <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 20, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 14, boxShadow: "0 16px 48px rgba(0,0,0,0.12)", overflow: "hidden", minWidth: 160 }}>
+                          <div style={{ position: "fixed", top: "auto", right: 16, zIndex: 9999, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 14, boxShadow: "0 16px 48px rgba(0,0,0,0.15)", overflow: "hidden", minWidth: 160 }}>
                             {[
                               { icon: Eye,    label: "Preview", color: "#0d1f2d", action: () => { setMenuOpen(null); setPreviewListing(l) } },
                               { icon: Pencil, label: "Edit",    color: T,         action: () => { setMenuOpen(null); setEditListing(l) } },
@@ -1014,9 +1014,9 @@ function Listings({ listings, loading, onRefresh }) {
                     {l.sqft && <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#64748b" }}><Maximize2 size={12} color="#cbd5e1" />{Number(l.sqft).toLocaleString()} sqft</span>}
                   </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 12, flexWrap: "wrap", gap: 8 }}>
-                  <span style={{ fontSize: 18, fontWeight: 900, color: T, letterSpacing: "-0.02em" }}>{l.price_label}</span>
-                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}><Eye size={13} color="#94a3b8" /><span style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>{(l.views || 0).toLocaleString()} views · {l.saves || 0} saves</span></div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 10 }}>
+                  <span style={{ fontSize: "clamp(14px,3.5vw,17px)", fontWeight: 900, color: "#fff", background: T, padding: "4px 10px", borderRadius: 50, alignSelf: "flex-start", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.price_label}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}><Eye size={11} color="#94a3b8" /><span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>{(l.views || 0).toLocaleString()} views · {l.saves || 0} saves</span></div>
                 </div>
               </div>
             </div>
@@ -1987,6 +1987,11 @@ export default function AgentDashboard() {
         a, button { -webkit-tap-highlight-color: transparent; }
         :focus-visible { outline: 2px solid ${T}; outline-offset: 3px; border-radius: 4px; }
         @keyframes fadeUp  { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
+        @media (max-width: 500px) {
+          .listing-mgmt-card { flex-direction: column !important; }
+          .listing-mgmt-img { width: 100% !important; }
+          .listing-mgmt-img img, .listing-mgmt-img > div { height: 160px !important; min-height: 160px !important; }
+        }
         @keyframes slideUp { from{opacity:0;transform:translateY(40px)} to{opacity:1;transform:none} }
         @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
         @keyframes spin    { to{transform:rotate(360deg)} }

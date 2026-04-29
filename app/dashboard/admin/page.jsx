@@ -1188,16 +1188,18 @@ function ReportsTab({ reports: parentReports, loading: parentLoading, onRefresh 
 
 // ─── Notifications Tab ────────────────────────────────────────────────────────
 function NotificationsTab({ users }) {
-  const [notifType, setNotifType] = useState("general")
-  const [target,    setTarget]    = useState("all")
-  const [recipient, setRecipient] = useState("")
-  const [title,     setTitle]     = useState("")
-  const [message,   setMessage]   = useState("")
-  const [sending,   setSending]   = useState(false)
-  const [sent,      setSent]      = useState(false)
-  const [error,     setError]     = useState("")
-  const [history,   setHistory]   = useState([])
-  const [isPersonal, setIsPersonal] = useState(false)
+  const [notifType,     setNotifType]     = useState("general")
+  const [target,        setTarget]        = useState("all")
+  const [recipient,     setRecipient]     = useState("")
+  const [userSearch,    setUserSearch]    = useState("")
+  const [showUserList,  setShowUserList]  = useState(false)
+  const [title,         setTitle]         = useState("")
+  const [message,       setMessage]       = useState("")
+  const [sending,       setSending]       = useState(false)
+  const [sent,          setSent]          = useState(false)
+  const [error,         setError]         = useState("")
+  const [history,       setHistory]       = useState([])
+  const [isPersonal,    setIsPersonal]    = useState(false)
 
   useEffect(() => {
     supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(15)
@@ -1212,9 +1214,8 @@ function NotificationsTab({ users }) {
     const { data: { user: authUser } } = await supabase.auth.getUser()
 
     if (isPersonal) {
-      const targetUser = users.find(u => u.email === recipient || u.full_name?.toLowerCase() === recipient.toLowerCase())
-      if (!targetUser) { setError("User not found."); setSending(false); return }
-      await supabase.from("notifications").insert({ user_id: targetUser.id, type: notifType, title, body: message })
+      if (!recipient) { setError("Please select a recipient."); setSending(false); return }
+      await supabase.from("notifications").insert({ user_id: recipient, type: notifType, title, body: message })
     } else {
       let targetUsers = users
       if (target === "agents") targetUsers = users.filter(u => u.role === "agent")
@@ -1284,18 +1285,74 @@ function NotificationsTab({ users }) {
               </div>
             )}
 
-            {/* Recipient */}
+            {/* Recipient — searchable user picker */}
             {isPersonal && (
-              <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.04em" }}>Recipient Email or Name</label>
-                <input value={recipient} onChange={e => setRecipient(e.target.value)} placeholder="e.g. user@email.com"
-                  list="users-list" style={inputStyle}
-                  onFocus={e => { e.target.style.borderColor = T }}
-                  onBlur={e => { e.target.style.borderColor = "#e2e8f0" }}
-                />
-                <datalist id="users-list">
-                  {users.map(u => <option key={u.id} value={u.email}>{u.full_name}</option>)}
-                </datalist>
+              <div style={{ position: "relative" }}>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.04em" }}>Select Recipient</label>
+                {recipient ? (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderRadius: 12, border: "1.5px solid " + T, background: T + "08" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ width: 34, height: 34, borderRadius: "50%", background: T + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 900, color: T, flexShrink: 0 }}>
+                        {users.find(u => u.id === recipient)?.full_name?.charAt(0)?.toUpperCase() || "?"}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: "#0d1f2d" }}>{users.find(u => u.id === recipient)?.full_name || "Unknown"}</div>
+                        <div style={{ fontSize: 12, color: "#64748b" }}>{users.find(u => u.id === recipient)?.email}</div>
+                      </div>
+                    </div>
+                    <button type="button" onClick={() => { setRecipient(""); setUserSearch("") }}
+                      style={{ width: 28, height: 28, borderRadius: 8, background: "#f1f5f9", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                      <X size={14} color="#64748b" />
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ position: "relative" }}>
+                    <input
+                      value={userSearch}
+                      onChange={e => setUserSearch(e.target.value)}
+                      placeholder="Search by name or email..."
+                      style={{ ...inputStyle, paddingLeft: 40 }}
+                      onFocus={e => { e.target.style.borderColor = T; setShowUserList(true) }}
+                      onBlur={() => setTimeout(() => setShowUserList(false), 200)}
+                      autoComplete="off"
+                    />
+                    <Search size={14} color="#94a3b8" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)" }} />
+                    {showUserList && (
+                      <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, background: "#fff", borderRadius: 14, border: "1.5px solid #e2e8f0", boxShadow: "0 12px 32px rgba(0,0,0,0.12)", zIndex: 100, maxHeight: 240, overflowY: "auto" }}>
+                        {users
+                          .filter(u => {
+                            const q = userSearch.toLowerCase()
+                            return !q || u.full_name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q)
+                          })
+                          .slice(0, 10)
+                          .map(u => (
+                            <button key={u.id} type="button"
+                              onMouseDown={() => { setRecipient(u.id); setUserSearch(""); setShowUserList(false) }}
+                              style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "12px 16px", border: "none", background: "transparent", cursor: "pointer", textAlign: "left", borderBottom: "1px solid #f8fafc", transition: "background 0.12s" }}
+                              onMouseEnter={e => { e.currentTarget.style.background = "#f8fafc" }}
+                              onMouseLeave={e => { e.currentTarget.style.background = "transparent" }}>
+                              <div style={{ width: 36, height: 36, borderRadius: "50%", background: T + "15", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 900, color: T, flexShrink: 0 }}>
+                                {u.full_name?.charAt(0)?.toUpperCase() || "?"}
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: "#0d1f2d", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{u.full_name || "No name"}</div>
+                                <div style={{ fontSize: 12, color: "#94a3b8", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{u.email}</div>
+                              </div>
+                              <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 50, background: u.role === "agent" ? T + "15" : "#f1f5f9", color: u.role === "agent" ? T : "#64748b", flexShrink: 0 }}>
+                                {u.role || "buyer"}
+                              </span>
+                            </button>
+                          ))}
+                        {users.filter(u => {
+                          const q = userSearch.toLowerCase()
+                          return !q || u.full_name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q)
+                        }).length === 0 && (
+                          <div style={{ padding: "20px", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>No users found</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 

@@ -357,7 +357,7 @@ function EnquiryForm({ listing, agent }) {
       <h3 style={{ margin: "0 0 6px", fontSize: 15, fontWeight: 800, color: "#0d1f2d" }}>Login to Contact Agent</h3>
       <p style={{ margin: "0 0 14px", fontSize: 13, color: "#64748b", lineHeight: 1.6 }}>Create a free account to message agents and track enquiries.</p>
       <Link href="/auth" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "11px 20px", borderRadius: 11, background: T, color: "#fff", textDecoration: "none", fontSize: 14, fontWeight: 800, boxShadow: "0 6px 20px " + T_GLOW }}>
-        Login / Sign Up - It's Free
+        Login - It's Free
       </Link>
     </div>
   )

@@ -72,7 +72,7 @@ function NavBar() {
                   My Dashboard
                 </Link>
               : <Link href="/auth" style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 20px", borderRadius: 50, background: T, color: "#fff", fontSize: 13, fontWeight: 800, textDecoration: "none" }}>
-                  Login / Sign Up
+                  Login
                 </Link>
           )}
         </div>
@@ -216,7 +216,7 @@ function ContactForm({ agent, authUser, userData }) {
         <h3 style={{ margin: "0 0 8px", fontSize: 15, fontWeight: 800, color: "#0d1f2d" }}>Login to Contact Agent</h3>
         <p style={{ margin: "0 0 16px", fontSize: 13, color: "#64748b" }}>Create a free account to message this agent.</p>
         <Link href="/auth" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px 24px", borderRadius: 12, background: T, color: "#fff", textDecoration: "none", fontSize: 14, fontWeight: 800, boxShadow: "0 6px 20px " + T_GLOW }}>
-          Login / Sign Up — Free
+          Login — Free
         </Link>
       </div>
     )
