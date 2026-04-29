@@ -669,8 +669,13 @@ function Footer() {
             <img src="/findwithhabilogo.png" alt="FindWithHabi" style={{ height: 64, width: "auto", objectFit: "contain", marginBottom: 14 }} />
             <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", lineHeight: 1.8, maxWidth: 280, marginBottom: 20 }}>Nigeria&apos;s most trusted property platform. Verified listings, expert agents, and seamless transactions.</p>
             <div style={{ display: "flex", gap: 10 }}>
-              {[[Globe,"Website"],[MessageCircle,"Chat"],[Share2,"Share"]].map(([Icon,label],i) => (
-                <a key={i} href="#" aria-label={label} style={{ width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {[
+                [Globe, "Website", "https://findwithhabi.com"],
+                [MessageCircle, "WhatsApp", "https://wa.me/message/findwithhabi"],
+                [Share2, "Twitter", "https://twitter.com/findwithhabi"],
+              ].map(([Icon, label, href], i) => (
+                <a key={i} href={href} target="_blank" rel="noopener noreferrer" aria-label={label}
+                  style={{ width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}>
                   <Icon size={14} color="rgba(255,255,255,0.6)" />
                 </a>
               ))}

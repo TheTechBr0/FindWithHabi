@@ -978,28 +978,58 @@ function Listings({ listings, loading, onRefresh }) {
               <div className="listing-mgmt-img" style={{ position: "relative", width: "clamp(90px,25%,160px)", flexShrink: 0 }}>
                 {l.cover_image ? <img src={l.cover_image} alt={l.title} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", minHeight: 110 }} /> : <div style={{ width: "100%", minHeight: 110, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}><Building2 size={28} color="#cbd5e1" /></div>}
                 <div style={{ position: "absolute", top: 8, left: 8 }}><StatusBadge status={l.status} /></div>
-                {l.is_featured && <div style={{ position: "absolute", top: 8, right: 8, background: "#f59e0b", color: "#fff", fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 50 }}>✦ Boost</div>}
+                {l.is_featured && (
+                  <div style={{ position: "absolute", bottom: 8, left: 8, display: "flex", alignItems: "center", gap: 4, background: "#f59e0b", color: "#fff", fontSize: 10, fontWeight: 800, padding: "3px 8px", borderRadius: 50, boxShadow: "0 2px 8px rgba(245,158,11,0.4)" }}>
+                    <Sparkles size={9} /> Boosted
+                  </div>
+                )}
               </div>
-              <div style={{ flex: 1, padding: "16px 18px", display: "flex", flexDirection: "column", justifyContent: "space-between", minWidth: 0 }}>
+              <div style={{ flex: 1, padding: "14px 14px", display: "flex", flexDirection: "column", justifyContent: "space-between", minWidth: 0, overflow: "hidden" }}>
                 <div>
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-                    <div style={{ minWidth: 0 }}>
-                      <h3 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 800, color: "#0d1f2d", letterSpacing: "-0.02em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l.title}</h3>
-                      <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}><MapPin size={11} color={T} /><span style={{ fontSize: 12, color: "#64748b" }}>{l.city}, {l.state}</span></div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <h3 style={{ margin: "0 0 4px", fontSize: "clamp(13px,3vw,15px)", fontWeight: 800, color: "#0d1f2d", letterSpacing: "-0.02em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{l.title}</h3>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}><MapPin size={11} color={T} /><span style={{ fontSize: 12, color: "#64748b", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{l.city}, {l.state}</span></div>
                     </div>
-                    <div style={{ position: "relative", flexShrink: 0 }}>
-                      <button onClick={() => setMenuOpen(menuOpen === l.id ? null : l.id)} style={{ width: 34, height: 34, borderRadius: 8, background: "#f8fafc", border: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><MoreHorizontal size={15} color="#64748b" /></button>
+                    {/* Desktop action buttons */}
+                    <div className="desktop-actions" style={{ display: "none", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                      <button onClick={() => setPreviewListing(l)}
+                        style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, border: "1px solid #e2e8f0", background: "#f8fafc", color: "#0d1f2d", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                        <Eye size={12} /> Preview
+                      </button>
+                      <button onClick={() => setEditListing(l)}
+                        style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, border: "1px solid " + T + "30", background: T + "08", color: T, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                        <Pencil size={12} /> Edit
+                      </button>
+                      <button onClick={() => handleDelete(l.id)}
+                        style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, border: "1px solid #fca5a5", background: "#fef2f2", color: "#ef4444", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                        <Trash2 size={12} /> Delete
+                      </button>
+                    </div>
+                    {/* Mobile 3-dot menu */}
+                    <div className="mobile-menu" style={{ position: "relative", flexShrink: 0 }}>
+                      <button
+                        onClick={e => {
+                          e.stopPropagation()
+                          if (menuOpen === l.id) { setMenuOpen(null); return }
+                          setMenuOpen(l.id)
+                        }}
+                        style={{ width: 36, height: 36, borderRadius: 10, background: "#f8fafc", border: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                        <MoreHorizontal size={16} color="#64748b" />
+                      </button>
                       {menuOpen === l.id && (
                         <>
-                          <div onClick={() => setMenuOpen(null)} style={{ position: "fixed", inset: 0, zIndex: 10 }} />
-                          <div style={{ position: "fixed", top: "auto", right: 16, zIndex: 9999, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 14, boxShadow: "0 16px 48px rgba(0,0,0,0.15)", overflow: "hidden", minWidth: 160 }}>
+                          <div onClick={() => setMenuOpen(null)} style={{ position: "fixed", inset: 0, zIndex: 998 }} />
+                          <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 999, background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: 16, boxShadow: "0 8px 32px rgba(0,0,0,0.15)", overflow: "hidden", minWidth: 170 }}>
                             {[
-                              { icon: Eye,    label: "Preview", color: "#0d1f2d", action: () => { setMenuOpen(null); setPreviewListing(l) } },
-                              { icon: Pencil, label: "Edit",    color: T,         action: () => { setMenuOpen(null); setEditListing(l) } },
-                              { icon: Trash2, label: "Delete",  color: "#ef4444", action: () => { setMenuOpen(null); handleDelete(l.id) } },
-                            ].map(({ icon: Icon, label, color, action }) => (
-                              <button key={label} onClick={action} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "12px 16px", border: "none", background: "#fff", color, fontSize: 14, fontWeight: 600, cursor: "pointer", borderBottom: label !== "Delete" ? "1px solid #f8fafc" : "none" }}
-                                onMouseEnter={e => { e.currentTarget.style.background = "#f8fafc" }} onMouseLeave={e => { e.currentTarget.style.background = "#fff" }}>
+                              { icon: Eye,    label: "Preview", color: "#0d1f2d", bg: "#f8fafc", action: () => { setMenuOpen(null); setPreviewListing(l) } },
+                              { icon: Pencil, label: "Edit",    color: T,         bg: T + "08",  action: () => { setMenuOpen(null); setEditListing(l) } },
+                              { icon: Trash2, label: "Delete",  color: "#ef4444", bg: "#fef2f2", action: () => { setMenuOpen(null); handleDelete(l.id) } },
+                            ].map(({ icon: Icon, label, color, bg, action }) => (
+                              <button key={label} onClick={action}
+                                style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "13px 16px", border: "none", background: "#fff", color, fontSize: 14, fontWeight: 700, cursor: "pointer", borderBottom: label !== "Delete" ? "1px solid #f8fafc" : "none", transition: "background 0.12s" }}
+                                onMouseEnter={e => { e.currentTarget.style.background = bg }}
+                                onMouseLeave={e => { e.currentTarget.style.background = "#fff" }}>
                                 <Icon size={15} /> {label}
                               </button>
                             ))}
@@ -1008,10 +1038,10 @@ function Listings({ listings, loading, onRefresh }) {
                       )}
                     </div>
                   </div>
-                  <div style={{ display: "flex", gap: 12 }}>
-                    {l.beds > 0 && <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#64748b" }}><Bed size={12} color="#cbd5e1" />{l.beds} Beds</span>}
-                    {l.baths > 0 && <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#64748b" }}><Bath size={12} color="#cbd5e1" />{l.baths} Baths</span>}
-                    {l.sqft && <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#64748b" }}><Maximize2 size={12} color="#cbd5e1" />{Number(l.sqft).toLocaleString()} sqft</span>}
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {l.beds > 0 && <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: "#64748b", background: "#f8fafc", padding: "2px 8px", borderRadius: 50, border: "1px solid #f1f5f9" }}><Bed size={11} color="#94a3b8" />{l.beds} bd</span>}
+                    {l.baths > 0 && <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: "#64748b", background: "#f8fafc", padding: "2px 8px", borderRadius: 50, border: "1px solid #f1f5f9" }}><Bath size={11} color="#94a3b8" />{l.baths} ba</span>}
+                    {l.sqft && <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: "#64748b", background: "#f8fafc", padding: "2px 8px", borderRadius: 50, border: "1px solid #f1f5f9" }}><Maximize2 size={11} color="#94a3b8" />{Number(l.sqft).toLocaleString()} sqft</span>}
                   </div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 10 }}>
@@ -1991,6 +2021,10 @@ export default function AgentDashboard() {
           .listing-mgmt-card { flex-direction: column !important; }
           .listing-mgmt-img { width: 100% !important; }
           .listing-mgmt-img img, .listing-mgmt-img > div { height: 160px !important; min-height: 160px !important; }
+        }
+        @media (min-width: 640px) {
+          .desktop-actions { display: flex !important; }
+          .mobile-menu { display: none !important; }
         }
         @keyframes slideUp { from{opacity:0;transform:translateY(40px)} to{opacity:1;transform:none} }
         @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }

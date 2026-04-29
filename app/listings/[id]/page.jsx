@@ -1093,6 +1093,19 @@ export default function ListingDetailPage() {
                       </span>
                     )}
                   </div>
+                  {/* Hot & Featured badges */}
+                  <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
+                    {(listing.views || 0) >= 50 && (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 50, background: "#fef2f2", border: "1px solid #fca5a5", fontSize: 11, fontWeight: 800, color: "#ef4444" }}>
+                        🔥 Hot · {(listing.views || 0).toLocaleString()} views
+                      </span>
+                    )}
+                    {listing.is_featured && (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 50, background: "#fffbeb", border: "1px solid #fde68a", fontSize: 11, fontWeight: 800, color: "#d97706" }}>
+                        ✦ Featured
+                      </span>
+                    )}
+                  </div>
                   <h1 style={{ margin: "0 0 7px", fontSize: "clamp(18px,5vw,30px)", fontWeight: 900, color: "#0d1f2d", letterSpacing: "-0.02em", lineHeight: 1.2 }}>{listing.title}</h1>
                   <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                     <MapPin size={13} color={T} style={{ flexShrink: 0 }} />
