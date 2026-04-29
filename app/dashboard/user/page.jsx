@@ -125,13 +125,10 @@ function NotificationBell({ userId, onOpen, onNavToEnquiries }) {
   const unread = notifs.filter(n => !n.is_read).length
   const T = "#0097B2"
 
-  const TYPE_CONFIG = {
-    personal:     { icon: "💬", color: "#0097B2", bg: "#e0f7fa" },
-    general:      { icon: "🔔", color: "#64748b", bg: "#f1f5f9" },
-    warning:      { icon: "⚠️", color: "#f59e0b", bg: "#fffbeb" },
-    feature:      { icon: "🚀", color: "#8b5cf6", bg: "#f5f3ff" },
-    announcement: { icon: "📢", color: "#ec4899", bg: "#fdf2f8" },
-    policy:       { icon: "📋", color: "#64748b", bg: "#f8fafc" },
+  const TYPE_BORDER = {
+    personal: "#0097B2", general: "#94a3b8",
+    warning: "#f59e0b", feature: "#8b5cf6",
+    announcement: "#ec4899", policy: "#64748b",
   }
 
   const load = async () => {
@@ -149,8 +146,6 @@ function NotificationBell({ userId, onOpen, onNavToEnquiries }) {
     return () => clearInterval(interval)
   }, [userId])
 
-  const toggle = () => { setOpen(p => !p); if (!open) load() }
-
   const markRead = async (id) => {
     await supabase.from("notifications").update({ is_read: true }).eq("id", id)
     setNotifs(p => p.map(n => n.id === id ? { ...n, is_read: true } : n))
@@ -164,17 +159,16 @@ function NotificationBell({ userId, onOpen, onNavToEnquiries }) {
   }
 
   const formatTime = (ts) => {
-    const d = new Date(ts)
-    const diff = Math.floor((new Date() - d) / 1000)
+    const diff = Math.floor((new Date() - new Date(ts)) / 1000)
     if (diff < 60)    return "just now"
-    if (diff < 3600)  return Math.floor(diff/60) + "m ago"
-    if (diff < 86400) return Math.floor(diff/3600) + "h ago"
-    return d.toLocaleDateString("en-NG", { day: "numeric", month: "short" })
+    if (diff < 3600)  return Math.floor(diff / 60) + "m ago"
+    if (diff < 86400) return Math.floor(diff / 3600) + "h ago"
+    return new Date(ts).toLocaleDateString("en-NG", { day: "numeric", month: "short" })
   }
 
   return (
     <div style={{ position: "relative" }}>
-      <button onClick={toggle}
+      <button onClick={() => { setOpen(p => !p); load() }}
         style={{ position: "relative", width: 40, height: 40, borderRadius: 12, background: open ? T + "12" : "#f8fafc", border: `1.5px solid ${open ? T + "40" : "#e2e8f0"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.2s" }}>
         <Bell size={17} color={open ? T : "#64748b"} />
         {unread > 0 && (
@@ -187,71 +181,61 @@ function NotificationBell({ userId, onOpen, onNavToEnquiries }) {
       {open && (
         <>
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 190 }} />
-          <div style={{ position: "fixed", top: 70, right: 8, left: 8, zIndex: 200, maxWidth: 400, marginLeft: "auto", background: "#fff", borderRadius: 20, boxShadow: "0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05)", overflow: "hidden", animation: "fadeUp 0.2s ease" }}>
-            <div style={{ padding: "16px 18px 12px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 10, background: T + "12", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Bell size={15} color={T} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 900, color: "#0d1f2d" }}>Notifications</div>
-                  {unread > 0 && <div style={{ fontSize: 11, color: "#94a3b8" }}>{unread} unread</div>}
-                </div>
+          <div style={{ position: "fixed", top: 70, right: 8, left: 8, zIndex: 200, maxWidth: 380, marginLeft: "auto", background: "#fff", borderRadius: 20, boxShadow: "0 8px 40px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.04)", overflow: "hidden" }}>
+            <div style={{ padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #f1f5f9" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 15, fontWeight: 900, color: "#0d1f2d" }}>Notifications</span>
+                {unread > 0 && <span style={{ fontSize: 11, fontWeight: 800, color: T, background: T + "12", padding: "2px 8px", borderRadius: 50 }}>{unread} new</span>}
               </div>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 {unread > 0 && (
                   <button onClick={markAllRead}
-                    style={{ fontSize: 11, color: T, fontWeight: 800, background: T + "10", border: "none", cursor: "pointer", padding: "5px 10px", borderRadius: 8 }}>
+                    style={{ fontSize: 12, color: "#64748b", fontWeight: 600, background: "none", border: "none", cursor: "pointer", padding: "4px 8px", borderRadius: 8 }}
+                    onMouseEnter={e => e.currentTarget.style.background = "#f1f5f9"}
+                    onMouseLeave={e => e.currentTarget.style.background = "none"}>
                     Mark all read
                   </button>
                 )}
                 <button onClick={() => setOpen(false)}
                   style={{ width: 28, height: 28, borderRadius: 8, background: "#f8fafc", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                  <X size={14} color="#64748b" />
+                  <X size={13} color="#94a3b8" />
                 </button>
               </div>
             </div>
-            <div style={{ maxHeight: 420, overflowY: "auto" }}>
+            <div style={{ maxHeight: 400, overflowY: "auto" }}>
               {notifs.length === 0 ? (
-                <div style={{ padding: "48px 24px", textAlign: "center" }}>
-                  <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
-                    <Bell size={24} color="#cbd5e1" />
-                  </div>
-                  <p style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#64748b" }}>All caught up!</p>
-                  <p style={{ margin: 0, fontSize: 12, color: "#94a3b8" }}>No notifications yet</p>
+                <div style={{ padding: "40px 20px", textAlign: "center" }}>
+                  <Bell size={28} color="#e2e8f0" style={{ marginBottom: 10 }} />
+                  <p style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#94a3b8" }}>All caught up!</p>
+                  <p style={{ margin: 0, fontSize: 12, color: "#cbd5e1" }}>No notifications yet</p>
                 </div>
               ) : notifs.map((n, i) => {
-                const tc = TYPE_CONFIG[n.type] || TYPE_CONFIG.general
+                const border = TYPE_BORDER[n.type] || TYPE_BORDER.general
                 const isAgent = n.type === "personal" || n.title?.toLowerCase().includes("replied")
                 return (
-                  <div key={n.id}
-                    style={{ padding: "14px 18px", borderBottom: i < notifs.length - 1 ? "1px solid #f8fafc" : "none", background: n.is_read ? "#fff" : T + "05", cursor: "pointer", transition: "background 0.15s" }}
-                    onClick={() => markRead(n.id)}
-                    onMouseEnter={e => { e.currentTarget.style.background = "#f8fafc" }}
-                    onMouseLeave={e => { e.currentTarget.style.background = n.is_read ? "#fff" : T + "05" }}>
-                    <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                      <div style={{ width: 38, height: 38, borderRadius: 12, background: tc.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
-                        {tc.icon}
+                  <div key={n.id} onClick={() => markRead(n.id)}
+                    style={{ display: "flex", gap: 0, borderBottom: i < notifs.length - 1 ? "1px solid #f8fafc" : "none", background: n.is_read ? "#fff" : "#fafeff", cursor: "pointer", transition: "background 0.12s" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
+                    onMouseLeave={e => e.currentTarget.style.background = n.is_read ? "#fff" : "#fafeff"}>
+                    <div style={{ width: 3, background: n.is_read ? "#f1f5f9" : border, flexShrink: 0 }} />
+                    <div style={{ flex: 1, padding: "12px 14px", minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 3 }}>
+                        <span style={{ fontSize: 13, fontWeight: n.is_read ? 600 : 800, color: "#0d1f2d", lineHeight: 1.4 }}>{n.title}</span>
+                        <span style={{ fontSize: 10, color: "#b0bec5", whiteSpace: "nowrap", flexShrink: 0, marginTop: 2 }}>{formatTime(n.created_at)}</span>
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 3 }}>
-                          <span style={{ fontSize: 13, fontWeight: n.is_read ? 600 : 800, color: "#0d1f2d", lineHeight: 1.4 }}>{n.title}</span>
-                          <span style={{ fontSize: 10, color: "#94a3b8", whiteSpace: "nowrap", flexShrink: 0 }}>{formatTime(n.created_at)}</span>
-                        </div>
-                        {(n.body || n.message) && (
-                          <p style={{ margin: "0 0 8px", fontSize: 12, color: "#64748b", lineHeight: 1.5, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
-                            {n.body || n.message}
-                          </p>
-                        )}
-                        {isAgent && onNavToEnquiries && (
-                          <button onClick={e => { e.stopPropagation(); markRead(n.id); setOpen(false); onNavToEnquiries() }}
-                            style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 8, background: T, border: "none", color: "#fff", fontSize: 11, fontWeight: 800, cursor: "pointer" }}>
-                            View Reply →
-                          </button>
-                        )}
-                      </div>
-                      {!n.is_read && <div style={{ width: 8, height: 8, borderRadius: "50%", background: T, flexShrink: 0, marginTop: 5 }} />}
+                      {(n.body || n.message) && (
+                        <p style={{ margin: "0 0 8px", fontSize: 12, color: "#94a3b8", lineHeight: 1.5, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+                          {n.body || n.message}
+                        </p>
+                      )}
+                      {isAgent && onNavToEnquiries && (
+                        <button onClick={e => { e.stopPropagation(); markRead(n.id); setOpen(false); onNavToEnquiries() }}
+                          style={{ fontSize: 11, fontWeight: 700, color: T, background: T + "10", border: "none", cursor: "pointer", padding: "4px 10px", borderRadius: 6 }}>
+                          View Reply →
+                        </button>
+                      )}
                     </div>
+                    {!n.is_read && <div style={{ width: 7, height: 7, borderRadius: "50%", background: border, flexShrink: 0, margin: "16px 12px 0 0" }} />}
                   </div>
                 )
               })}
